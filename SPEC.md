@@ -34,7 +34,7 @@ inbox/YYYY-MM-DD/<ai_name>.json
         │
         │ artisan reports:ingest
         ▼
-reports + news_items  (Postgres)
+reports + news_items + news_item_sources  (Postgres)
         │
         │ EmbedNewsItemJob (Horizon)
         ▼
@@ -71,9 +71,9 @@ Il prompt unificato già in uso (vedi `docs/source_prompt.md`) produce un report
       "title": "stringa breve",
       "summary": "2-4 frasi in italiano",
       "entities": ["OpenAI", "EU AI Act"],
-      "event_date": "YYYY-MM-DD (data dell'evento riportato, non del report)",
+      "event_date": "YYYY-MM-DD | null (data dell'evento riportato, non del report; null se non determinabile)",
       "sources": [{"name": "TechCrunch", "url": "https://..."}],
-      "importance_self_rated": 1-5,
+      "importance_self_rated": "1-5 | null (null se l'AI non lo dichiara)",
       "raw_tags": ["funding", "regulation"]
     }
   ]
@@ -86,10 +86,11 @@ L'aggiornamento del prompt sorgente è un deliverable della Fase 1.
 
 | Tabella | Colonne principali |
 |---|---|
-| `reports` | id, report_date, source_ai, payload (jsonb), payload_hash (univoco), ingested_at |
-| `news_items` | id, report_id, section (enum), title, summary, entities (jsonb), event_date, raw_tags (jsonb), importance_self_rated, embedding (vector(1536)), cluster_id (nullable) |
+| `reports` | id, report_date, source_ai, payload (jsonb), payload_hash (sha256, **unique globale**), ingested_at |
+| `news_items` | id, report_id, section (enum), title, summary, entities (jsonb), event_date (**nullable**), raw_tags (jsonb), importance_self_rated (**nullable**, 1-5), embedding (vector(1536)), cluster_id (nullable) |
+| `news_item_sources` | id, news_item_id, name, url, position (preserva l'ordine originale nel JSON) |
 | `clusters` | id, canonical_title, canonical_summary, first_seen_at, last_seen_at, consensus_count, novelty_score, importance_avg, topic_match_score, total_score, status (active/archived) |
-| `tags` | id, slug (univoco), name, description |
+| `tags` | id, slug (unique), name, description |
 | `news_item_tag` | news_item_id, tag_id (pivot) |
 | `cluster_tag` | cluster_id, tag_id (pivot) |
 | `entities` | id, name, type (company/person/regulation/product/other) |
@@ -97,35 +98,55 @@ L'aggiornamento del prompt sorgente è un deliverable della Fase 1.
 | `publications` | id, cluster_id (nullable), kind (linkedin_short/linkedin_medium/linkedin_opinion/article), status (draft/approved/rejected/published), title, body, variants (jsonb), generated_at, published_at, source_cluster_ids (jsonb) |
 | `tag_proposals` | id, slug, reason, frequency, status (pending/approved/rejected) |
 
+**Note di design:**
+
+- `news_item_sources` è una tabella separata e non un campo `jsonb` su `news_items` per supportare query del tipo "tutti gli URL di fonte aggregati dentro il cluster X" (utile per generare riferimenti nei post LinkedIn e articoli) e analisi future per testata (`name`).
+- `event_date` nullable: non tutte le notizie hanno una data evento esplicita ("questa settimana", "in corso", o l'AI non la dichiara). Meglio nullable che inventata.
+- `importance_self_rated` nullable: alcune AI omettono il campo. Nello scoring (Fase 3) si applica `COALESCE(importance_self_rated, 3)` come fallback al valore mediano.
+- `payload_hash` unique globale: poiché il payload include `source_ai`, una collisione tra AI diverse è impossibile per costruzione. Calcolato via `App\Support\CanonicalJson::hash()` (vedi Fase 1).
+
 ## 7. Tassonomia tag (seed iniziale)
 
 `mcp`, `agentic-frameworks`, `regulation-eu`, `regulation-us`, `regulation-china`, `funding`, `acquisition`, `model-release`, `benchmark`, `coding-tools`, `security-prompt-injection`, `security-other`, `hardware`, `inference-optimization`, `multimodal`, `reasoning`, `context-window`, `open-source`, `partnership`, `ipo`, `research-paper`, `enterprise-adoption`
 
-I tag fuori da questa lista vanno in `tag_proposals` con status `pending` per review prima di essere promossi a `tags`.
+Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I `raw_tags` dal JSON delle AI vengono mappati ai `tags` esistenti applicando `Str::slug(strtolower($raw))` e cercando un match su `tags.slug`. I `raw_tags` non mappati restano nel campo `news_items.raw_tags` come dato grezzo e **non** alimentano automaticamente `tag_proposals`: la proposta di nuovi tag è un meccanismo riservato alla Fase 3, dove la synthesis di Claude propone nuovi tag motivandoli esplicitamente.
 
 ## 8. Roadmap a fasi
 
 ### Fase 1 — Foundation (MVP minimo)
 
 - Init progetto Laravel con Sail
-- Configurazione Postgres 16 + estensione `pgvector` nel container
-- Migration: `reports`, `news_items` (senza colonna `embedding` per ora, viene in Fase 2), `tags`, `entities`, pivot tables
+- **Override del servizio `pgsql` in `docker-compose.yml`** sostituendo l'immagine di default con `pgvector/pgvector:pg16` (immagine ufficiale upstream, Postgres + pgvector preinstallato, stesso client psql)
+- Migration `CREATE EXTENSION IF NOT EXISTS vector` come prima migration: abilitiamo l'estensione subito anche se la colonna `vector(1536)` su `news_items` arriva in Fase 2, per non bloccare la transizione
+- Migrations: `reports`, `news_items` (senza colonna `embedding` per ora), `news_item_sources`, `tags`, `entities`, pivot tables
 - Seeder `TagSeeder` con la tassonomia del §7
-- `docs/source_prompt.md` con il prompt sorgente esteso (markdown + JSON)
+- Helper `App\Support\CanonicalJson::hash(array $data): string` che esegue:
+  1. `ksort` ricorsivo sull'array
+  2. `json_encode($sorted, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)`
+  3. `hash('sha256', $json)`
+
+  Questo garantisce che payload semanticamente identici producano lo stesso hash indipendentemente da ordine chiavi o whitespace.
+- `docs/source_prompt.md` con il prompt sorgente esteso (markdown + JSON come da §5)
 - Console command `reports:ingest <path>` che:
   - Accetta un file `.json` o una cartella
-  - Valida ogni JSON contro lo schema del §5
-  - Calcola hash del payload e salta se già ingerito (idempotente)
+  - Valida ogni JSON contro lo schema del §5 (Form Request o `validator()` su array — `event_date` e `importance_self_rated` accettati come `null`)
+  - Calcola hash via `CanonicalJson::hash($payload)` e salta se `payload_hash` già presente in `reports` (idempotente)
   - Crea record in `reports` e `news_items`
-  - Popola `entities` da `items[].entities`
-  - Popola `news_item_tag` mappando i `raw_tags` ai `tags` esistenti (i non mappati restano in `news_items.raw_tags`)
-- Feature test sull'ingest (file valido, file invalido, idempotenza)
+  - Popola `news_item_sources` da `items[].sources` preservando l'ordine in `position`
+  - Popola `entities` da `items[].entities` (find-or-create su `name`)
+  - Popola `news_item_tag` mappando i `raw_tags` ai `tags` esistenti via `Str::slug(strtolower($raw))` e match su `tags.slug`. I raw non mappati restano in `news_items.raw_tags`
+- Feature test sull'ingest:
+  - file valido → record corretti in tutte le tabelle attese
+  - file invalido → errore di validazione, nessun record creato
+  - stesso file due volte → secondo ingest no-op (idempotenza)
+  - file con `event_date` o `importance_self_rated` null → ingest riuscito
+  - raw_tag `"Funding"` e `"funding"` entrambi mappati a `tags.slug = funding`
 
-**Done quando**: posso ingerire 3 report di esempio (uno per AI) e vedere righe corrette in `news_items`.
+**Done quando**: posso ingerire 3 report di esempio (uno per AI) e vedere righe corrette in `reports`, `news_items`, `news_item_sources`, `news_item_tag`, `entities`.
 
 ### Fase 2 — Embedding + Clustering
 
-- Aggiungere colonna `embedding vector(1536)` a `news_items`
+- Aggiungere colonna `embedding vector(1536)` a `news_items` via migration
 - `EmbeddingService` con interface e 2 driver: `OpenAIEmbeddingDriver` (default), `VoyageEmbeddingDriver`
 - `EmbedNewsItemJob` accodato dopo `IngestReportAction` per ogni nuovo item
 - `ClusterNewsItemJob`:
@@ -133,7 +154,7 @@ I tag fuori da questa lista vanno in `tag_proposals` con status `pending` per re
   - Cerca cluster esistenti per similarità coseno > `CLUSTERING_SIMILARITY_THRESHOLD` (default 0.85)
   - Limita la ricerca alla finestra `CLUSTERING_TIME_WINDOW_HOURS` (default 72)
   - Se trova match: associa l'item al cluster, aggiorna `last_seen_at` e `consensus_count`
-  - Altrimenti: crea nuovo cluster con `canonical_title` = title dell'item, ricalcolo `synth` verrà fatto in Fase 3
+  - Altrimenti: crea nuovo cluster con `canonical_title` = title dell'item; il `synth` definitivo verrà fatto in Fase 3
 - Console command `reports:reprocess <report_id>` per rifare embedding e clustering
 
 **Done quando**: dopo ingest, gli item appaiono raggruppati in `clusters` in modo sensato su un dataset reale di 3-4 giorni.
@@ -144,9 +165,10 @@ I tag fuori da questa lista vanno in `tag_proposals` con status `pending` per re
 - `SynthesizeClusterJob`:
   - Input: cluster con tutti gli items associati
   - Output: `canonical_title`, `canonical_summary`, tag scelti dalla tassonomia, eventuali `tag_proposals`, `novelty_score`
-  - Prompt strutturato che vieta esplicitamente la creazione di tag fuori tassonomia (vanno in `tag_proposals`)
+  - Prompt strutturato che vieta esplicitamente la creazione di tag fuori tassonomia (vanno in `tag_proposals` con `reason` motivata)
 - Calcolo `total_score = w1*consensus + w2*novelty + w3*importance_avg + w4*topic_match` (pesi da `.env`)
-- `topic_match` = frazione di tag del cluster che cadono nei `SCORING_TOPIC_INTEREST_TAGS`
+  - **`importance_avg` è calcolato come media di `COALESCE(importance_self_rated, 3)` sugli items del cluster** (fallback al valore mediano per gli item dove l'AI non ha dichiarato il rating)
+  - `topic_match` = frazione di tag del cluster che cadono nei `SCORING_TOPIC_INTEREST_TAGS`
 - Console command `clusters:rescore` per ricalcolo bulk dopo modifica pesi
 - Console command `clusters:list --top=N --since=DATE` per consultazione da terminale
 
@@ -158,7 +180,7 @@ I tag fuori da questa lista vanno in `tag_proposals` con status `pending` per re
 - `ArticleGenerator`: per cluster ad alto score con tema sufficientemente ricco (heuristic: ≥3 items, ≥2 entità rilevanti), genera bozza articolo lungo (outline → sezioni → coerenza)
 - SPA React minimale (Vite + Tailwind):
   - Feed cluster con filtri (sezione, tag, score min, data)
-  - Dettaglio cluster con tutti gli items grezzi e bozze associate
+  - Dettaglio cluster con tutti gli items grezzi, le fonti aggregate da `news_item_sources` e le bozze associate
   - Lista publications con stato e azioni: `approve`, `reject`, `edit` (textarea con autosave), `mark as published`
   - Export markdown per articolo approvato
 - Auth: token statico in header `X-API-Token` (uso personale, non serve OAuth)
@@ -179,11 +201,15 @@ I tag fuori da questa lista vanno in `tag_proposals` con status `pending` per re
 | Decisione | Razionale |
 |---|---|
 | Postgres vs MySQL | `pgvector` nativo, supporto JSONB più maturo |
+| Immagine `pgvector/pgvector:pg16` | Ufficiale upstream, manutenuta, no Dockerfile custom da mantenere |
 | Embedding esterno vs locale | Costi minimi (centesimi/mese al volume previsto), qualità superiore, no GPU |
 | OpenAI default per embedding | Più economico oggi (`text-embedding-3-small`); Voyage come backup |
 | Anthropic per synthesis e generazione | Qualità superiore su istruzioni complesse strutturate; coerente con il workflow personale |
 | Clustering greedy con soglia coseno | Volume basso (decine di item/giorno): soluzione semplice e debuggabile, no HDBSCAN |
-| Tassonomia controllata + `tag_proposals` | Previene la proliferazione di tag quasi-duplicati |
+| Tassonomia controllata + `tag_proposals` solo da Fase 3 | Previene proliferazione tag quasi-duplicati; i raw_tags grezzi delle AI sono rumore eterogeneo |
+| `news_item_sources` come tabella, non jsonb | Permette aggregazione fonti per cluster e analisi per testata |
+| Hash payload canonicalizzato | Idempotenza robusta a variazioni di formattazione del JSON |
+| `event_date` e `importance_self_rated` nullable | Fedeltà al dato originale, nessuna invenzione; fallback esplicito nello scoring |
 | Tutto Laravel/PHP | Coerenza con lo stack principale dell'utente |
 | MCP server in TS (Fase 5) | SDK ufficiale più maturo; processo separato non vincola lo stack |
 
