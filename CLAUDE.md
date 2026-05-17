@@ -31,13 +31,75 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 ./vendor/bin/sail artisan reports:reprocess <report_id>
 ./vendor/bin/sail artisan clusters:rescore
 
-# Worker
-./vendor/bin/sail artisan horizon
+# Worker (vedi sezione "Coda job" sotto)
+./vendor/bin/sail artisan queue:work --stop-when-empty   # locale/test
+./vendor/bin/sail artisan horizon                        # produzione con Redis
+
+# Frontend
+./vendor/bin/sail npm run build   # build statica (sufficiente per uso normale)
+./vendor/bin/sail npm run dev     # dev server con HMR (secondo terminale)
 
 # Test
 ./vendor/bin/sail test
 ./vendor/bin/sail test --filter=<TestName>
 ```
+
+## Setup locale per test end-to-end
+
+### 1. Variabili d'ambiente obbligatorie
+
+```ini
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+PIPELINE_API_TOKEN=scegli-una-stringa-segreta
+VITE_API_TOKEN=stessa-stringa-di-sopra   # deve essere scritto esplicitamente, no interpolazione
+```
+
+### 2. Prima avviata
+
+```bash
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --seed   # crea tabelle + TagSeeder
+./vendor/bin/sail npm run build            # compila frontend
+```
+
+### 3. Workflow di test
+
+```bash
+# Ingest report
+./vendor/bin/sail artisan reports:ingest tests/fixtures/sample_report.json
+
+# Processa i job (embedding → clustering → synthesis)
+./vendor/bin/sail artisan queue:work --stop-when-empty
+
+# Apri http://localhost — i cluster compaiono nel feed
+```
+
+Un fixture di esempio è disponibile in `tests/fixtures/sample_report.json`.
+
+## Coda job
+
+### Driver `database` (default, consigliato per sviluppo locale)
+
+`QUEUE_CONNECTION=database` nel `.env`. I job vengono salvati nella tabella `jobs`.
+Per processarli basta lanciare il worker manualmente:
+
+```bash
+./vendor/bin/sail artisan queue:work --stop-when-empty   # elabora tutto e si ferma
+./vendor/bin/sail artisan queue:work                     # rimane in ascolto
+```
+
+### Driver `redis` + Horizon (consigliato per uso continuativo)
+
+1. Cambia nel `.env`: `QUEUE_CONNECTION=redis`
+2. Avvia Horizon in un terminale dedicato:
+   ```bash
+   ./vendor/bin/sail artisan horizon
+   ```
+3. Dashboard disponibile su `http://localhost/horizon`
+
+Con Redis i job vengono processati in automatico non appena ingestato un report,
+senza bisogno di avviare il worker manualmente ogni volta.
 
 ## Convenzioni codice
 

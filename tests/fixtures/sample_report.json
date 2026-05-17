@@ -1,0 +1,66 @@
+{
+  "source_ai": "claude",
+  "report_date": "2026-05-17",
+  "items": [
+    {
+      "section": "strategic",
+      "title": "Anthropic launches Claude 4 Opus with extended context window",
+      "summary": "Anthropic released Claude 4 Opus, featuring a 500k token context window and improved reasoning on multi-step tasks. The model scores 87% on GPQA Diamond benchmark, surpassing previous state-of-the-art results. Enterprise customers gain access immediately via the API.",
+      "entities": ["Anthropic", "Claude 4 Opus"],
+      "raw_tags": ["model-release", "context-window", "reasoning"],
+      "event_date": "2026-05-16",
+      "importance_self_rated": 5,
+      "sources": [
+        { "url": "https://www.anthropic.com/news/claude-4", "name": "Anthropic Blog", "position": 1 }
+      ]
+    },
+    {
+      "section": "strategic",
+      "title": "OpenAI announces GPT-5 with multimodal reasoning capabilities",
+      "summary": "OpenAI unveiled GPT-5 at a press event in San Francisco. The model natively handles text, images, audio and video in a unified architecture. CEO Sam Altman stated the model will be available to ChatGPT Plus subscribers starting next week.",
+      "entities": ["OpenAI", "GPT-5", "Sam Altman"],
+      "raw_tags": ["model-release", "multimodal", "reasoning"],
+      "event_date": "2026-05-15",
+      "importance_self_rated": 5,
+      "sources": [
+        { "url": "https://openai.com/gpt-5", "name": "OpenAI Blog", "position": 1 }
+      ]
+    },
+    {
+      "section": "technical",
+      "title": "Google DeepMind publishes research on inference-time compute scaling",
+      "summary": "A new paper from Google DeepMind demonstrates that scaling compute at inference time — rather than training — yields consistent gains on mathematical reasoning benchmarks. The technique uses tree-of-thought search with a trained verifier, reducing hallucination rates by 34%.",
+      "entities": ["Google DeepMind", "Google"],
+      "raw_tags": ["research-paper", "inference-optimization", "reasoning"],
+      "event_date": "2026-05-14",
+      "importance_self_rated": 4,
+      "sources": [
+        { "url": "https://arxiv.org/abs/2026.12345", "name": "arXiv", "position": 1 }
+      ]
+    },
+    {
+      "section": "tooling",
+      "title": "Cursor raises $900M Series C at $9B valuation",
+      "summary": "AI coding editor Cursor announced a $900 million Series C funding round, bringing its valuation to $9 billion. The company reports 500,000 active developers using the tool daily. Funds will be used to expand the model context and improve codebase indexing.",
+      "entities": ["Cursor", "Anysphere"],
+      "raw_tags": ["funding", "coding-tools"],
+      "event_date": "2026-05-16",
+      "importance_self_rated": 4,
+      "sources": [
+        { "url": "https://cursor.com/blog/series-c", "name": "Cursor Blog", "position": 1 }
+      ]
+    },
+    {
+      "section": "tooling",
+      "title": "MCP protocol adoption reaches 10,000 registered servers",
+      "summary": "The Model Context Protocol ecosystem has grown to over 10,000 registered server implementations across GitHub. Major integrations include Slack, Notion, Linear, and GitHub itself. Anthropic reports Claude Code is the most active MCP client by volume.",
+      "entities": ["Anthropic", "Slack", "Notion", "Linear", "GitHub"],
+      "raw_tags": ["MCP", "Agentic Frameworks", "coding-tools"],
+      "event_date": "2026-05-17",
+      "importance_self_rated": 5,
+      "sources": [
+        { "url": "https://modelcontextprotocol.io/blog/10k", "name": "MCP Blog", "position": 1 }
+      ]
+    }
+  ]
+}
