@@ -7,19 +7,34 @@ description: Ambiente di esecuzione comandi per il progetto ai-news-pipeline Lar
 
 ## Ambiente shell
 
-Il tool Bash usa Git Bash (Windows). Sail NON funziona da Git Bash.
+Il tool Bash gira in WSL2 (Linux). Sail funziona direttamente dalla shell.
 
 ## Comandi artisan
 
-NON usare mai:
+Usare sempre Sail:
 ```
 ./vendor/bin/sail artisan <comando>
 ```
 
-Usare sempre:
-```
-docker exec ai-news-pipeline-laravel.test-1 php artisan <comando>
-```
+Eseguire sempre dalla directory del progetto: `/home/akela/projects/ai-news-pipeline`
 
-Questo comando va eseguito da PowerShell, non da Git Bash.
-Se il contesto è Git Bash, istruire l'utente a eseguirlo manualmente da PowerShell.
+## Esempi comuni
+
+```bash
+# Boot ambiente
+./vendor/bin/sail up -d
+
+# Migrations
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan migrate:fresh --seed
+
+# Test
+./vendor/bin/sail test
+./vendor/bin/sail test --filter=<TestName>
+
+# Tinker
+./vendor/bin/sail artisan tinker
+
+# Worker
+./vendor/bin/sail artisan horizon
+```
