@@ -13,6 +13,8 @@ return [
         'time_window_hours'    => (int) env('CLUSTERING_TIME_WINDOW_HOURS', 72),
     ],
 
+    'api_token' => env('PIPELINE_API_TOKEN'),
+
     'scoring' => [
         'weight_consensus'   => (float) env('SCORING_WEIGHT_CONSENSUS', 0.35),
         'weight_novelty'     => (float) env('SCORING_WEIGHT_NOVELTY', 0.20),

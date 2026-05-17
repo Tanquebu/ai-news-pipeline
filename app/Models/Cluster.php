@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+
 class Cluster extends Model
 {
     protected $fillable = [
@@ -40,5 +41,10 @@ class Cluster extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'cluster_tag');
+    }
+
+    public function publications(): HasMany
+    {
+        return $this->hasMany(Publication::class);
     }
 }
