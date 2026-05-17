@@ -63,6 +63,7 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 - Commit message in inglese, imperative mood (`add embedding job`, non `added embedding job`)
 - Commit atomici: un commit = una cosa
 - PR description sintetica con riferimento alla sezione di SPEC.md implementata
+- Non aggiungere mai Co-authored-by o qualsiasi riferimento a Claude nei commit message
 
 ## Cosa NON fare
 
@@ -86,3 +87,4 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 ## Lingua
 
 Documentazione tecnica e codice in inglese. Conversazione con l'utente in italiano.
+
