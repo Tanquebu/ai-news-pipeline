@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Jobs\EmbedNewsItemJob;
 use Database\Seeders\TagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
 class IngestReportsCommandTest extends TestCase
@@ -17,6 +19,8 @@ class IngestReportsCommandTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Bus::fake([EmbedNewsItemJob::class]);
 
         $this->tmpDir = sys_get_temp_dir() . '/ai-news-test-' . uniqid();
         mkdir($this->tmpDir, 0755, true);

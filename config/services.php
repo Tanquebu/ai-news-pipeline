@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'base_url' => 'https://api.openai.com/v1',
+    ],
+
+    'voyage' => [
+        'api_key' => env('VOYAGE_API_KEY'),
+        'base_url' => 'https://api.voyageai.com/v1',
+    ],
+
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model'   => env('ANTHROPIC_MODEL', 'claude-opus-4-7'),
+    ],
+
 ];

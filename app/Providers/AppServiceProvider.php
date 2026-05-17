@@ -1,24 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Contracts\EmbeddingDriver;
+use App\Services\Embedding\OpenAIEmbeddingDriver;
+use App\Services\Embedding\VoyageEmbeddingDriver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(EmbeddingDriver::class, function () {
+            $driver     = config('pipeline.embedding.driver');
+            $model      = config('pipeline.embedding.model');
+            $dimensions = config('pipeline.embedding.dimensions');
+
+            return match ($driver) {
+                'voyage' => new VoyageEmbeddingDriver(
+                    apiKey: config('services.voyage.api_key'),
+                    model: $model,
+                ),
+                default => new OpenAIEmbeddingDriver(
+                    apiKey: config('services.openai.api_key'),
+                    model: $model,
+                    dimensions: $dimensions,
+                ),
+            };
+        });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+    public function boot(): void {}
 }

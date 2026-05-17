@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Jobs\EmbedNewsItemJob;
 use App\Models\Entity;
 use App\Models\NewsItem;
 use App\Models\NewsItemSource;
@@ -41,7 +42,8 @@ class IngestReportAction
             ]);
 
             foreach ($payload['items'] as $item) {
-                $this->ingestItem($report, $item);
+                $newsItem = $this->ingestItem($report, $item);
+                EmbedNewsItemJob::dispatch($newsItem->id);
             }
         });
 
@@ -69,7 +71,7 @@ class IngestReportAction
         ];
     }
 
-    private function ingestItem(Report $report, array $item): void
+    private function ingestItem(Report $report, array $item): NewsItem
     {
         $newsItem = NewsItem::create([
             'report_id'             => $report->id,
@@ -110,5 +112,7 @@ class IngestReportAction
         if ($tagIds !== []) {
             $newsItem->tags()->attach($tagIds);
         }
+
+        return $newsItem;
     }
 }

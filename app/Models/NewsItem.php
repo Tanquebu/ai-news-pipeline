@@ -14,6 +14,7 @@ class NewsItem extends Model
 {
     protected $fillable = [
         'report_id',
+        'cluster_id',
         'section',
         'title',
         'summary',
@@ -31,12 +32,18 @@ class NewsItem extends Model
             'event_date'            => 'date',
             'raw_tags'              => 'array',
             'importance_self_rated' => 'integer',
+            'cluster_id'            => 'integer',
         ];
     }
 
     public function report(): BelongsTo
     {
         return $this->belongsTo(Report::class);
+    }
+
+    public function cluster(): BelongsTo
+    {
+        return $this->belongsTo(Cluster::class);
     }
 
     public function sources(): HasMany
