@@ -56,6 +56,8 @@ class ClusterNewsItemJob implements ShouldQueue
                 'consensus_count' => DB::raw('consensus_count + 1'),
                 'last_seen_at'    => $now,
             ]);
+
+            $clusterId = $match->cluster_id;
         } else {
             $cluster = Cluster::create([
                 'canonical_title' => $item->title,
@@ -66,6 +68,10 @@ class ClusterNewsItemJob implements ShouldQueue
             ]);
 
             $item->update(['cluster_id' => $cluster->id]);
+
+            $clusterId = $cluster->id;
         }
+
+        SynthesizeClusterJob::dispatch($clusterId);
     }
 }

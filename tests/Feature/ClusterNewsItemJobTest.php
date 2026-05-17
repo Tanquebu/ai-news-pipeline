@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Jobs\ClusterNewsItemJob;
+use App\Jobs\SynthesizeClusterJob;
 use App\Models\Cluster;
 use App\Models\NewsItem;
 use App\Models\Report;
 use Database\Seeders\TagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -20,6 +22,7 @@ class ClusterNewsItemJobTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Bus::fake([SynthesizeClusterJob::class]);
         $this->seed(TagSeeder::class);
     }
 

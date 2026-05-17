@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\EmbeddingDriver;
+use App\Contracts\LLMClient;
+use App\Services\AnthropicService;
 use App\Services\Embedding\OpenAIEmbeddingDriver;
 use App\Services\Embedding\VoyageEmbeddingDriver;
 use Illuminate\Support\ServiceProvider;
@@ -30,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
                 ),
             };
         });
+
+        $this->app->bind(LLMClient::class, AnthropicService::class);
     }
 
     public function boot(): void {}
