@@ -69,11 +69,16 @@ VITE_API_TOKEN=stessa-stringa-di-sopra   # deve essere scritto esplicitamente, n
 # Ingest report
 ./vendor/bin/sail artisan reports:ingest tests/fixtures/sample_report.json
 
-# Processa i job (embedding → clustering → synthesis)
-./vendor/bin/sail artisan queue:work --stop-when-empty
+# Processa i job in più passate (embed → cluster → synthesis sono job in cascata;
+# con --stop-when-empty il worker può fermarsi tra uno stage e il successivo)
+./vendor/bin/sail artisan queue:work --stop-when-empty   # embed + cluster
+./vendor/bin/sail artisan queue:work --stop-when-empty   # synthesis
 
 # Apri http://localhost — i cluster compaiono nel feed
 ```
+
+> **Nota:** se i cluster appaiono senza score (campo `total_score` vuoto), la synthesis
+> non è stata processata. Rilanciare `queue:work --stop-when-empty` una seconda volta.
 
 Un fixture di esempio è disponibile in `tests/fixtures/sample_report.json`.
 
