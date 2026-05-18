@@ -76,7 +76,14 @@ export default function ClusterDetail() {
                 <ul className="space-y-3">
                     {cluster.news_items?.map((item) => (
                         <li key={item.id} className="bg-white border rounded p-3 text-sm">
-                            <p className="font-medium">[{item.section}] {item.title}</p>
+                            <div className="flex justify-between items-start gap-2">
+                                <p className="font-medium">[{item.section}] {item.title}</p>
+                                {item.report?.source_ai && (
+                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded shrink-0">
+                                        {item.report.source_ai}
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-gray-600 mt-1">{item.summary}</p>
                             {item.sources?.length > 0 && (
                                 <ul className="mt-2 space-y-0.5">

@@ -75,6 +75,11 @@ export default function ClusterFeed() {
                                     {t.slug}
                                 </span>
                             ))}
+                            {[...new Set(c.news_items?.map((i) => i.report?.source_ai).filter(Boolean))].map((ai) => (
+                                <span key={ai} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                                    {ai}
+                                </span>
+                            ))}
                         </div>
                         <p className="text-xs text-gray-400 mt-2">
                             consensus: {c.consensus_count} · {c.last_seen_at?.substring(0, 10)}

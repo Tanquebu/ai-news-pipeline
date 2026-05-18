@@ -15,7 +15,7 @@ class ClusterController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Cluster::with(['tags'])
+        $query = Cluster::with(['tags', 'newsItems.report:id,source_ai'])
             ->where('status', 'active')
             ->whereNotNull('total_score')
             ->orderByDesc('total_score');
@@ -41,6 +41,7 @@ class ClusterController extends Controller
     {
         $cluster->load([
             'tags',
+            'newsItems.report:id,source_ai',
             'newsItems.sources',
             'newsItems.tags',
             'newsItems.resolvedEntities',
