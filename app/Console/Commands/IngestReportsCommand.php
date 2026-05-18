@@ -11,7 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class IngestReportsCommand extends Command
 {
-    protected $signature = 'reports:ingest {path : Path to a .json file or a directory of .json files}';
+    protected $signature = 'reports:ingest {path : Path to a .json file or a directory of .json files}
+                                          {--move= : Directory to move successfully ingested files into}';
 
     protected $description = 'Ingest one or more AI report JSON files into the database';
 
@@ -40,6 +41,12 @@ class IngestReportsCommand extends Command
             return self::SUCCESS;
         }
 
+        $moveDir = $this->option('move');
+
+        if ($moveDir !== null) {
+            File::ensureDirectoryExists($moveDir);
+        }
+
         $created = $skipped = $errors = 0;
 
         foreach ($files as $file) {
@@ -53,12 +60,20 @@ class IngestReportsCommand extends Command
                     flags: JSON_THROW_ON_ERROR,
                 );
 
-                if ($this->action->execute($payload)) {
+                $wasCreated = $this->action->execute($payload);
+
+                if ($wasCreated) {
                     $this->info('  Created.');
                     $created++;
                 } else {
                     $this->line('  Skipped (already ingested).');
                     $skipped++;
+                }
+
+                if ($moveDir !== null) {
+                    $dest = rtrim($moveDir, '/') . '/' . $file->getBasename();
+                    File::move($filePath, $dest);
+                    $this->line("  Moved to: {$dest}");
                 }
             } catch (ValidationException $e) {
                 $this->error('  Validation error: ' . implode(', ', $e->validator->errors()->all()));

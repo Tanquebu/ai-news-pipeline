@@ -30,8 +30,7 @@ class IngestReportsCommandTest extends TestCase
 
     protected function tearDown(): void
     {
-        array_map('unlink', glob($this->tmpDir . '/*.json') ?: []);
-        rmdir($this->tmpDir);
+        \Illuminate\Support\Facades\File::deleteDirectory($this->tmpDir);
 
         parent::tearDown();
     }
@@ -179,5 +178,39 @@ class IngestReportsCommandTest extends TestCase
     {
         $this->artisan('reports:ingest', ['path' => '/nonexistent/path/report.json'])
             ->assertExitCode(1);
+    }
+
+    public function test_move_option_moves_processed_files_to_destination(): void
+    {
+        $destDir = $this->tmpDir . '/processed';
+
+        $payload1              = $this->validPayload();
+        $payload2              = $this->validPayload();
+        $payload2['source_ai'] = 'gpt-5';
+
+        $this->writeFixture($payload1, 'claude.json');
+        $this->writeFixture($payload2, 'gpt.json');
+
+        $this->artisan('reports:ingest', ['path' => $this->tmpDir, '--move' => $destDir])
+            ->assertExitCode(0);
+
+        $this->assertFileExists($destDir . '/claude.json');
+        $this->assertFileExists($destDir . '/gpt.json');
+        $this->assertFileDoesNotExist($this->tmpDir . '/claude.json');
+        $this->assertFileDoesNotExist($this->tmpDir . '/gpt.json');
+    }
+
+    public function test_move_option_does_not_move_files_with_errors(): void
+    {
+        $destDir = $this->tmpDir . '/processed';
+
+        $invalid = ['report_date' => 'bad', 'source_ai' => 'x', 'items' => []];
+        $this->writeFixture($invalid, 'bad.json');
+
+        $this->artisan('reports:ingest', ['path' => $this->tmpDir, '--move' => $destDir])
+            ->assertExitCode(0);
+
+        $this->assertFileExists($this->tmpDir . '/bad.json');
+        $this->assertFileDoesNotExist($destDir . '/bad.json');
     }
 }
