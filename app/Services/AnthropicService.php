@@ -16,7 +16,14 @@ class AnthropicService implements LLMClient
                 'anthropic-version' => '2023-06-01',
             ])
             ->timeout(60)
-            ->retry(3, fn (int $attempt) => 1000 * (2 ** ($attempt - 1)))
+            ->retry(
+                times: 3,
+                sleepMilliseconds: fn (int $attempt) => 1000 * (2 ** ($attempt - 1)),
+                // 429/529 are capacity errors: retrying quickly is pointless.
+                // Let them propagate so the queue worker can apply a long backoff.
+                when: fn (\Exception $e) => ! ($e instanceof \Illuminate\Http\Client\RequestException
+                    && in_array($e->response->status(), [429, 529], true)),
+            )
             ->post('https://api.anthropic.com/v1/messages', [
                 'model'      => config('services.anthropic.model', 'claude-opus-4-7'),
                 'max_tokens' => $maxTokens,

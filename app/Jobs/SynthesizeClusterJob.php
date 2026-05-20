@@ -16,7 +16,13 @@ class SynthesizeClusterJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 8;
+
+    /** Backoff in seconds: 1m, 5m, 15m, 30m, 1h, 2h, 4h */
+    public function backoff(): array
+    {
+        return [60, 300, 900, 1800, 3600, 7200, 14400];
+    }
 
     public function __construct(public readonly int $clusterId) {}
 
