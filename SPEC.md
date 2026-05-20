@@ -161,7 +161,7 @@ Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I 
 
 ### Fase 3 — Synthesis + Scoring
 
-- `AnthropicService` con retry (3 tentativi, exponential backoff), timeout, logging strutturato
+- `AnthropicService` con retry selettivo (3 tentativi con exponential backoff per errori di rete/timeout; nessun retry interno per 429/529 — vedi §12), timeout 60s, logging strutturato
 - `SynthesizeClusterJob`:
   - Input: cluster con tutti gli items associati
   - Output: `canonical_title`, `canonical_summary`, tag scelti dalla tassonomia, eventuali `tag_proposals`, `novelty_score`
@@ -207,6 +207,28 @@ Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I 
   - `draft_linkedin_post(cluster_id, kind)` → invoca generator e ritorna bozza
 - Configurazione stdio per uso da Claude Code locale (no auth necessaria, processo figlio)
 - Documentazione `docs/mcp_server.md` con setup
+
+## 12. Gestione errori API esterni
+
+### Anthropic — errori di capacità (429 / 529)
+
+Anthropic restituisce **HTTP 429** (rate limit) e **HTTP 529** (overloaded) come errori transitori che possono durare minuti o ore. Questi non vanno confusi con errori di rete o timeout (recuperabili in pochi secondi).
+
+**Strategia adottata:**
+
+| Livello | Comportamento |
+|---|---|
+| `AnthropicService` (HTTP) | Retry interno attivo **solo** per errori di rete e timeout (max 3 volte, backoff 1s/2s/4s). Su 429/529 l'eccezione è rilanciata immediatamente senza retry. |
+| `SynthesizeClusterJob` (queue) | 8 tentativi totali con backoff progressivo: **1m → 5m → 15m → 30m → 1h → 2h → 4h** (finestra totale ~8h). |
+
+**Razionale:** ritentare rapidamente su un 429/529 è controproducente — brucia i tentativi disponibili mentre l'API è ancora sovraccarica. Il retry deve avvenire a livello di queue worker, con attese abbastanza lunghe da permettere ad Anthropic di recuperare.
+
+**Diagnostica:** i job in attesa di retry restano nella tabella `jobs` con `attempts > 0`. I job che esauriscono tutti i tentativi finiscono in `failed_jobs`. Gli errori singoli sono loggati in `storage/logs/laravel.log`.
+
+**Reset manuale:** se si vuole resettare i tentativi di un job bloccato:
+```bash
+./vendor/bin/sail artisan tinker --execute="DB::table('jobs')->update(['attempts' => 0, 'reserved_at' => null]);"
+```
 
 ## 9. Decisioni tecniche e razionale
 
