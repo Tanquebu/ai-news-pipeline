@@ -187,6 +187,18 @@ Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I 
 
 **Done quando**: workflow end-to-end funzionante: report ingerito → cluster generato → bozza LinkedIn → approve → markdown copiabile.
 
+### Fase 6 — Report Management
+
+- API `GET /api/reports` — lista paginata dei report importati con conteggio `news_items_count`, ordinata per data decrescente
+- API `DELETE /api/reports/{id}` — elimina il report con cascade DB su `news_items`, `news_item_sources`, `news_item_tag`, `news_item_entity` (FK con `cascadeOnDelete`); riconcilia i cluster coinvolti:
+  - cluster rimasti senza items → eliminati insieme alle loro `publications` in stato `draft`
+  - cluster con items sopravvissuti → `consensus_count` aggiornato al conteggio reale
+  - `publications` in stato `approved`/`published`/`rejected` non vengono mai eliminate
+- UI: tab "Report" nella SPA con lista e bottone "Elimina" per riga (browser confirm dialog)
+- Auth: stesso token statico `X-API-Token` delle altre route
+
+**Done quando**: posso vedere la lista dei report importati e cancellarne uno selettivamente dall'UI, verificando che il cluster associato venga gestito correttamente.
+
 ### Fase 5 (opzionale) — MCP server custom
 
 - MCP server (TypeScript SDK ufficiale) che espone tool:
@@ -237,4 +249,4 @@ PIPELINE_API_TOKEN=  # token statico per UI/MCP (Fase 4-5)
 
 ## 11. Stato attuale
 
-Progetto vuoto. Da implementare: **Fase 1**.
+Fasi 1–6 implementate e testate. Branch attivo: `feat/foundation-phase-1`.
