@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import ClusterFeed from './components/ClusterFeed';
 import ClusterDetail from './components/ClusterDetail';
 import PublicationsList from './components/PublicationsList';
+import ReportsList from './components/ReportsList';
 
 function Nav() {
     return (
@@ -11,6 +12,7 @@ function Nav() {
             <span className="font-bold text-gray-800">AI News Pipeline</span>
             <Link to="/" className="text-sm text-blue-600 hover:underline">Feed</Link>
             <Link to="/publications" className="text-sm text-blue-600 hover:underline">Pubblicazioni</Link>
+            <Link to="/reports" className="text-sm text-blue-600 hover:underline">Report</Link>
         </nav>
     );
 }
@@ -24,6 +26,7 @@ function App() {
                     <Route path="/" element={<ClusterFeed />} />
                     <Route path="/clusters/:id" element={<ClusterDetail />} />
                     <Route path="/publications" element={<PublicationsList />} />
+                    <Route path="/reports" element={<ReportsList />} />
                 </Routes>
             </main>
         </BrowserRouter>

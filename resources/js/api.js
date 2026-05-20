@@ -31,6 +31,10 @@ export const api = {
     generateArticle: (clusterId) =>
         request('POST', `/clusters/${clusterId}/generate/article`),
 
+    getReports: () => request('GET', '/reports'),
+
+    deleteReport: (id) => request('DELETE', `/reports/${id}`),
+
     getPublications: (params = {}) =>
         request('GET', '/publications?' + new URLSearchParams(params)),
 
