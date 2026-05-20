@@ -15,6 +15,7 @@ class IngestReportsCommandTest extends TestCase
     use RefreshDatabase;
 
     private string $tmpDir;
+    private string $processedDir;
 
     protected function setUp(): void
     {
@@ -22,7 +23,8 @@ class IngestReportsCommandTest extends TestCase
 
         Bus::fake([EmbedNewsItemJob::class]);
 
-        $this->tmpDir = sys_get_temp_dir() . '/ai-news-test-' . uniqid();
+        $this->tmpDir       = sys_get_temp_dir() . '/ai-news-test-' . uniqid();
+        $this->processedDir = $this->tmpDir . '/processed';
         mkdir($this->tmpDir, 0755, true);
 
         $this->seed(TagSeeder::class);
@@ -68,14 +70,20 @@ class IngestReportsCommandTest extends TestCase
         ];
     }
 
+    private function ingest(string $path, ?string $move = null): \Illuminate\Testing\PendingCommand
+    {
+        $opts = ['--path' => $path, '--move' => $move ?? $this->processedDir];
+
+        return $this->artisan('reports:ingest', $opts);
+    }
+
     // --- tests ---
 
     public function test_valid_file_creates_correct_records_in_all_tables(): void
     {
         $path = $this->writeFixture($this->validPayload());
 
-        $this->artisan('reports:ingest', ['path' => $path])
-            ->assertExitCode(0);
+        $this->ingest($path)->assertExitCode(0);
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertDatabaseCount('news_items', 1);
@@ -111,8 +119,7 @@ class IngestReportsCommandTest extends TestCase
 
         $path = $this->writeFixture($payload);
 
-        $this->artisan('reports:ingest', ['path' => $path])
-            ->assertExitCode(0);
+        $this->ingest($path)->assertExitCode(0);
 
         $this->assertDatabaseCount('reports', 0);
         $this->assertDatabaseCount('news_items', 0);
@@ -122,8 +129,9 @@ class IngestReportsCommandTest extends TestCase
     {
         $path = $this->writeFixture($this->validPayload());
 
-        $this->artisan('reports:ingest', ['path' => $path])->assertExitCode(0);
-        $this->artisan('reports:ingest', ['path' => $path])->assertExitCode(0);
+        $this->ingest($path)->assertExitCode(0);
+        // File was moved after first ingest; second run uses new location.
+        $this->ingest($this->processedDir . '/report.json')->assertExitCode(0);
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertDatabaseCount('news_items', 1);
@@ -137,7 +145,7 @@ class IngestReportsCommandTest extends TestCase
 
         $path = $this->writeFixture($payload);
 
-        $this->artisan('reports:ingest', ['path' => $path])->assertExitCode(0);
+        $this->ingest($path)->assertExitCode(0);
 
         $this->assertDatabaseCount('reports', 1);
         $this->assertDatabaseHas('news_items', [
@@ -148,12 +156,12 @@ class IngestReportsCommandTest extends TestCase
 
     public function test_raw_tags_are_mapped_case_insensitively(): void
     {
-        $payload                       = $this->validPayload();
+        $payload                        = $this->validPayload();
         $payload['items'][0]['raw_tags'] = ['Funding', 'funding', 'FUNDING'];
 
         $path = $this->writeFixture($payload);
 
-        $this->artisan('reports:ingest', ['path' => $path])->assertExitCode(0);
+        $this->ingest($path)->assertExitCode(0);
 
         // All three variants resolve to slug 'funding' → deduplicated → one pivot row
         $this->assertDatabaseCount('news_item_tag', 1);
@@ -168,21 +176,19 @@ class IngestReportsCommandTest extends TestCase
         $this->writeFixture($payload1, 'claude.json');
         $this->writeFixture($payload2, 'gpt.json');
 
-        $this->artisan('reports:ingest', ['path' => $this->tmpDir])
-            ->assertExitCode(0);
+        $this->ingest($this->tmpDir)->assertExitCode(0);
 
         $this->assertDatabaseCount('reports', 2);
     }
 
     public function test_missing_path_returns_failure(): void
     {
-        $this->artisan('reports:ingest', ['path' => '/nonexistent/path/report.json'])
-            ->assertExitCode(1);
+        $this->ingest('/nonexistent/path/report.json')->assertExitCode(1);
     }
 
-    public function test_move_option_moves_processed_files_to_destination(): void
+    public function test_files_are_moved_to_destination_after_ingest(): void
     {
-        $destDir = $this->tmpDir . '/processed';
+        $destDir = $this->tmpDir . '/ingested';
 
         $payload1              = $this->validPayload();
         $payload2              = $this->validPayload();
@@ -191,8 +197,7 @@ class IngestReportsCommandTest extends TestCase
         $this->writeFixture($payload1, 'claude.json');
         $this->writeFixture($payload2, 'gpt.json');
 
-        $this->artisan('reports:ingest', ['path' => $this->tmpDir, '--move' => $destDir])
-            ->assertExitCode(0);
+        $this->ingest($this->tmpDir, $destDir)->assertExitCode(0);
 
         $this->assertFileExists($destDir . '/claude.json');
         $this->assertFileExists($destDir . '/gpt.json');
@@ -200,15 +205,14 @@ class IngestReportsCommandTest extends TestCase
         $this->assertFileDoesNotExist($this->tmpDir . '/gpt.json');
     }
 
-    public function test_move_option_does_not_move_files_with_errors(): void
+    public function test_files_with_errors_are_not_moved(): void
     {
-        $destDir = $this->tmpDir . '/processed';
+        $destDir = $this->tmpDir . '/ingested';
 
         $invalid = ['report_date' => 'bad', 'source_ai' => 'x', 'items' => []];
         $this->writeFixture($invalid, 'bad.json');
 
-        $this->artisan('reports:ingest', ['path' => $this->tmpDir, '--move' => $destDir])
-            ->assertExitCode(0);
+        $this->ingest($this->tmpDir, $destDir)->assertExitCode(0);
 
         $this->assertFileExists($this->tmpDir . '/bad.json');
         $this->assertFileDoesNotExist($destDir . '/bad.json');
