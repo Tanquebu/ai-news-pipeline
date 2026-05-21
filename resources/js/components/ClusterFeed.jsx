@@ -83,6 +83,9 @@ export default function ClusterFeed() {
                         </div>
                         <p className="text-xs text-gray-400 mt-2">
                             consensus: {c.consensus_count} · {c.last_seen_at?.substring(0, 10)}
+                            {c.news_items_min_event_date && (
+                                <> · evento: {c.news_items_min_event_date}{c.news_items_max_event_date && c.news_items_max_event_date !== c.news_items_min_event_date ? ` → ${c.news_items_max_event_date}` : ''}</>
+                            )}
                         </p>
                     </li>
                 ))}

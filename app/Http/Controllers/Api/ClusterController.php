@@ -16,6 +16,8 @@ class ClusterController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Cluster::with(['tags', 'newsItems.report:id,source_ai'])
+            ->withMin('newsItems', 'event_date')
+            ->withMax('newsItems', 'event_date')
             ->where('status', 'active')
             ->whereNotNull('total_score')
             ->orderByDesc('total_score');
@@ -49,8 +51,14 @@ class ClusterController extends Controller
 
         $publications = $cluster->publications()->orderByDesc('generated_at')->get();
 
+        $eventDates = $cluster->newsItems->pluck('event_date')->filter();
+        $clusterData = array_merge($cluster->toArray(), [
+            'news_items_min_event_date' => $eventDates->min()?->toDateString(),
+            'news_items_max_event_date' => $eventDates->max()?->toDateString(),
+        ]);
+
         return response()->json([
-            'cluster'      => $cluster,
+            'cluster'      => $clusterData,
             'publications' => $publications,
         ]);
     }

@@ -49,6 +49,9 @@ export default function ClusterDetail() {
                 </div>
                 <p className="text-sm text-gray-400 mt-2">
                     Score: {Number(cluster.total_score).toFixed(3)} · Consensus: {cluster.consensus_count}
+                    {cluster.news_items_min_event_date && (
+                        <> · Evento: {cluster.news_items_min_event_date}{cluster.news_items_max_event_date && cluster.news_items_max_event_date !== cluster.news_items_min_event_date ? ` → ${cluster.news_items_max_event_date}` : ''}</>
+                    )}
                 </p>
             </section>
 

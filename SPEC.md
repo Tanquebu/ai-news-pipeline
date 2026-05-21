@@ -244,6 +244,7 @@ Anthropic restituisce **HTTP 429** (rate limit) e **HTTP 529** (overloaded) come
 | `news_item_sources` come tabella, non jsonb | Permette aggregazione fonti per cluster e analisi per testata |
 | Hash payload canonicalizzato | Idempotenza robusta a variazioni di formattazione del JSON |
 | `event_date` e `importance_self_rated` nullable | Fedeltà al dato originale, nessuna invenzione; fallback esplicito nello scoring |
+| `event_date` non denormalizzato su `clusters` | Calcolato on-the-fly via `withMin`/`withMax` sugli `newsItems` associati; esposto come `news_items_min_event_date` / `news_items_max_event_date`. Se in futuro serve filtrare per data evento, aggiungere colonna `event_date date nullable` su `clusters` e popolarla in `ClusterNewsItemJob`. |
 | Tutto Laravel/PHP | Coerenza con lo stack principale dell'utente |
 | MCP server in TS (Fase 5) | SDK ufficiale più maturo; processo separato non vincola lo stack |
 
