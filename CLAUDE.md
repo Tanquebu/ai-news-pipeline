@@ -108,6 +108,35 @@ Per processarli basta lanciare il worker manualmente:
 Con Redis i job vengono processati in automatico non appena ingestato un report,
 senza bisogno di avviare il worker manualmente ogni volta.
 
+## Debug con VSCode (Xdebug)
+
+Prerequisiti: estensione **PHP Debug** (`xdebug.php-debug`) installata in VSCode. Il file `.vscode/launch.json` è già configurato nel repo.
+
+### Abilitare Xdebug
+
+Aggiungere al `.env`:
+
+```ini
+SAIL_XDEBUG_MODE=develop,debug
+```
+
+Poi avviare normalmente:
+
+```bash
+./vendor/bin/sail up -d
+```
+
+### Workflow di debug
+
+1. Metti un breakpoint nel file (click sul margine sinistro in VSCode)
+2. Avvia il listener: `F5` → **Xdebug (Sail)** (per richieste HTTP) oppure **Xdebug (Artisan)** (per comandi console)
+3. Fai la richiesta — VSCode si ferma sul breakpoint
+
+### Note operative
+
+- Il debugger si attiva solo quando il listener VSCode è in ascolto (`F5`). Quando non si sta debuggando, commentare `SAIL_XDEBUG_MODE` nel `.env` e riavviare Sail per evitare i timeout di connessione su ogni richiesta.
+- Su WSL2, VSCode deve essere aperto tramite **Remote - WSL**. Il `hostname: localhost` nel `launch.json` fa sì che Docker Desktop instradi correttamente le connessioni Xdebug tramite il suo proxy, senza bisogno di mappare l'IP WSL2.
+
 ## Convenzioni codice
 
 - PSR-12, `declare(strict_types=1);` in ogni file PHP

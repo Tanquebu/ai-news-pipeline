@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Xdebug (Sail)",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "hostname": "localhost",
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            },
+            "ignore": [
+                "**/vendor/**/*.php"
+            ]
+        },
+        {
+            "name": "Xdebug (Artisan)",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "hostname": "localhost",
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            },
+            "ignore": [
+                "**/vendor/**/*.php"
+            ]
+        }
+    ]
+}
