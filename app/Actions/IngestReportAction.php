@@ -94,10 +94,14 @@ class IngestReportAction
         }
 
         foreach ($item['entities'] as $entityName) {
-            $entity = Entity::firstOrCreate(
-                ['name' => $entityName],
-                ['type' => 'other'],
-            );
+            try {
+                $entity = Entity::firstOrCreate(
+                    ['name' => $entityName],
+                    ['type' => 'other'],
+                );
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                $entity = Entity::firstWhere('name', $entityName);
+            }
             $newsItem->resolvedEntities()->attach($entity->id);
         }
 

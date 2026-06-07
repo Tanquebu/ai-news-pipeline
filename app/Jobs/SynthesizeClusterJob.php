@@ -51,10 +51,14 @@ class SynthesizeClusterJob implements ShouldQueue
                 continue;
             }
 
-            $record = TagProposal::firstOrCreate(
-                ['slug' => $proposal['slug']],
-                ['reason' => $proposal['reason'], 'status' => 'pending'],
-            );
+            try {
+                $record = TagProposal::firstOrCreate(
+                    ['slug' => $proposal['slug']],
+                    ['reason' => $proposal['reason'], 'status' => 'pending'],
+                );
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                $record = TagProposal::firstWhere('slug', $proposal['slug']);
+            }
 
             if (! $record->wasRecentlyCreated) {
                 $record->increment('frequency');
