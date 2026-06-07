@@ -73,4 +73,21 @@ class CanonicalJsonTest extends TestCase
         $this->assertSame(64, strlen($hash));
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
     }
+
+    #[Test]
+    public function hash_does_not_escape_slashes_in_urls(): void
+    {
+        // JSON_UNESCAPED_SLASHES ensures that URL strings with "/" are not
+        // encoded as "\/" — the hash must be stable regardless of PHP version
+        // defaults, and must differ from a payload without the slash.
+        $withUrl    = CanonicalJson::hash(['url' => 'https://example.com/path']);
+        $withoutUrl = CanonicalJson::hash(['url' => 'https://example.com/path2']);
+
+        $this->assertSame(64, strlen($withUrl));
+        $this->assertNotSame($withUrl, $withoutUrl);
+
+        // Verify the JSON used for hashing does NOT escape slashes
+        $json = json_encode(['url' => 'https://example.com/path'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $this->assertStringNotContainsString('\/', $json);
+    }
 }

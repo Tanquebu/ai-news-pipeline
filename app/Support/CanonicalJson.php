@@ -8,7 +8,7 @@ class CanonicalJson
 {
     public static function hash(array $data): string
     {
-        return hash('sha256', json_encode(self::sort($data), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        return hash('sha256', json_encode(self::sort($data), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
     }
 
     private static function sort(mixed $value): mixed
