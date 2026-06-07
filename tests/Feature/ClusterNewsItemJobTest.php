@@ -39,6 +39,31 @@ class ClusterNewsItemJobTest extends TestCase
         $cluster = Cluster::first();
         $this->assertSame($item->title, $cluster->canonical_title);
         $this->assertSame(1, $cluster->consensus_count);
+
+        Bus::assertDispatched(SynthesizeClusterJob::class);
+    }
+
+    public function test_synthesize_not_dispatched_when_joining_existing_cluster(): void
+    {
+        // Identical vectors → similarity = 1.0
+        $existing = $this->createNewsItemWithEmbedding($this->vec(1, 0));
+        $cluster  = Cluster::create([
+            'canonical_title' => 'Existing cluster',
+            'first_seen_at'   => now()->subHour(),
+            'last_seen_at'    => now()->subHour(),
+            'consensus_count' => 1,
+            'status'          => 'active',
+        ]);
+        $existing->update(['cluster_id' => $cluster->id]);
+
+        $newItem = $this->createNewsItemWithEmbedding($this->vec(1, 0));
+
+        (new ClusterNewsItemJob($newItem->id))->handle();
+
+        $newItem->refresh();
+        $this->assertSame($cluster->id, $newItem->cluster_id);
+
+        Bus::assertNotDispatched(SynthesizeClusterJob::class);
     }
 
     public function test_assigns_to_existing_cluster_when_similarity_above_threshold(): void

@@ -70,8 +70,8 @@ class ClusterNewsItemJob implements ShouldQueue
             $item->update(['cluster_id' => $cluster->id]);
 
             $clusterId = $cluster->id;
-        }
 
-        SynthesizeClusterJob::dispatch($clusterId);
+            SynthesizeClusterJob::dispatch($clusterId);
+        }
     }
 }
