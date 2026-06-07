@@ -44,9 +44,11 @@ class AnthropicServiceTest extends TestCase
 
         $this->expectException(RequestException::class);
 
-        $this->service->complete('test prompt');
-
-        Http::assertSentCount(3);
+        try {
+            $this->service->complete('test prompt');
+        } finally {
+            Http::assertSentCount(3);
+        }
     }
 
     public function test_complete_does_not_retry_on_429(): void
