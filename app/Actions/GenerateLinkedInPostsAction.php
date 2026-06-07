@@ -35,7 +35,7 @@ class GenerateLinkedInPostsAction
                 'cluster_id'         => $cluster->id,
                 'kind'               => $kind,
                 'status'             => 'draft',
-                'title'              => $cluster->canonical_title ?? $cluster->canonical_title,
+                'title'              => $cluster->canonical_title ?? '',
                 'body'               => $body,
                 'generated_at'       => $now,
                 'source_cluster_ids' => [$cluster->id],
