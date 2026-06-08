@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 
 export default function ClusterDetail() {
-    const { id }                    = useParams();
-    const [data, setData]           = useState(null);
-    const [loading, setLoading]     = useState(true);
-    const [error, setError]         = useState(null);
+    const { id }                      = useParams();
+    const navigate                    = useNavigate();
+    const [data, setData]             = useState(null);
+    const [loading, setLoading]       = useState(true);
+    const [error, setError]           = useState(null);
     const [generating, setGenerating] = useState(null);
+    const [archiving, setArchiving]   = useState(false);
 
     useEffect(() => {
         api.getCluster(id)
@@ -26,6 +28,14 @@ export default function ClusterDetail() {
             .then(() => api.getCluster(id).then(setData))
             .catch((e) => alert(e.message))
             .finally(() => setGenerating(null));
+    };
+
+    const archive = () => {
+        if (!window.confirm('Archiviare questo cluster? Non sarà più visibile nel feed.')) return;
+        setArchiving(true);
+        api.archiveCluster(id)
+            .then(() => navigate('/'))
+            .catch((e) => { alert(e.message); setArchiving(false); });
     };
 
     if (loading) return <p className="p-6 text-gray-500">Caricamento…</p>;
@@ -56,20 +66,28 @@ export default function ClusterDetail() {
             </section>
 
             <section>
-                <div className="flex gap-3 mb-4">
+                <div className="flex gap-3 mb-4 flex-wrap items-center">
                     <button
                         onClick={() => generate('linkedin')}
-                        disabled={generating !== null}
+                        disabled={generating !== null || archiving}
                         className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
                     >
                         {generating === 'linkedin' ? '…' : 'Genera LinkedIn Posts'}
                     </button>
                     <button
                         onClick={() => generate('article')}
-                        disabled={generating !== null}
+                        disabled={generating !== null || archiving}
                         className="bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
                     >
                         {generating === 'article' ? '…' : 'Genera Articolo'}
+                    </button>
+                    <span className="border-l border-gray-200 h-6 mx-1" />
+                    <button
+                        onClick={archive}
+                        disabled={generating !== null || archiving}
+                        className="text-gray-500 border border-gray-300 px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        {archiving ? '…' : 'Archivia'}
                     </button>
                 </div>
             </section>

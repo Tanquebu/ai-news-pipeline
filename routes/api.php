@@ -12,10 +12,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::get('/clusters', [ClusterController::class, 'index']);
     Route::get('/clusters/{cluster}', [ClusterController::class, 'show']);
+    Route::post('/clusters/{cluster}/archive', [ClusterController::class, 'archive']);
     Route::post('/clusters/{cluster}/generate/linkedin', [ClusterController::class, 'generateLinkedIn']);
     Route::post('/clusters/{cluster}/generate/article', [ClusterController::class, 'generateArticle']);
 
     Route::get('/reports', [ReportController::class, 'index']);
+    Route::get('/reports/generators', [ReportController::class, 'generators']);
     Route::delete('/reports/{report}', [ReportController::class, 'destroy']);
 
     Route::get('/news-items', [NewsItemController::class, 'index']);

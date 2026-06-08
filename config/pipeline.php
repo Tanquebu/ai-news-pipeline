@@ -15,6 +15,11 @@ return [
 
     'api_token' => env('PIPELINE_API_TOKEN'),
 
+    'cluster' => [
+        'feed_window_days'   => (int) env('CLUSTER_FEED_WINDOW_DAYS', 14),
+        'archive_after_days' => (int) env('CLUSTER_ARCHIVE_AFTER_DAYS', 14),
+    ],
+
     'scoring' => [
         'weight_consensus'   => (float) env('SCORING_WEIGHT_CONSENSUS', 0.35),
         'weight_novelty'     => (float) env('SCORING_WEIGHT_NOVELTY', 0.20),

@@ -22,6 +22,16 @@ class ReportController extends Controller
         return response()->json($reports);
     }
 
+    public function generators(): JsonResponse
+    {
+        $generators = Report::select('source_ai')
+            ->distinct()
+            ->orderBy('source_ai')
+            ->pluck('source_ai');
+
+        return response()->json($generators);
+    }
+
     public function destroy(Report $report, DeleteReportAction $action): Response
     {
         $action->execute($report);

@@ -30,8 +30,20 @@ class ClusterController extends Controller
             $query->where('total_score', '>=', (float) $request->query('score_min'));
         }
 
-        if ($request->filled('since')) {
-            $query->where('last_seen_at', '>=', $request->query('since'));
+        if ($request->filled('source_ai')) {
+            $query->whereHas('newsItems.report', fn ($q) => $q->where('source_ai', $request->query('source_ai')));
+        }
+
+        if (! $request->boolean('show_all')) {
+            $since = $request->filled('since')
+                ? $request->query('since')
+                : now()->subDays(config('pipeline.cluster.feed_window_days'))->toDateTimeString();
+
+            // Priority: max event_date of news items (cast to timestamp); fallback to last_seen_at
+            $query->whereRaw(
+                'COALESCE((SELECT MAX(event_date)::timestamp FROM news_items WHERE cluster_id = clusters.id), clusters.last_seen_at) >= ?',
+                [$since]
+            );
         }
 
         $clusters = $query->paginate(20);
@@ -61,6 +73,17 @@ class ClusterController extends Controller
             'cluster'      => $clusterData,
             'publications' => $publications,
         ]);
+    }
+
+    public function archive(Cluster $cluster): JsonResponse
+    {
+        if ($cluster->status === 'archived') {
+            return response()->json(['error' => 'Cluster is already archived.'], 422);
+        }
+
+        $cluster->update(['status' => 'archived']);
+
+        return response()->json(['status' => 'archived']);
     }
 
     public function generateLinkedIn(Cluster $cluster, GenerateLinkedInPostsAction $action): JsonResponse

@@ -25,6 +25,9 @@ export const api = {
 
     getCluster: (id) => request('GET', `/clusters/${id}`),
 
+    archiveCluster: (clusterId) =>
+        request('POST', `/clusters/${clusterId}/archive`),
+
     generateLinkedIn: (clusterId) =>
         request('POST', `/clusters/${clusterId}/generate/linkedin`),
 
@@ -32,6 +35,8 @@ export const api = {
         request('POST', `/clusters/${clusterId}/generate/article`),
 
     getReports: () => request('GET', '/reports'),
+
+    getGenerators: () => request('GET', '/reports/generators'),
 
     deleteReport: (id) => request('DELETE', `/reports/${id}`),
 

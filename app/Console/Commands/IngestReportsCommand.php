@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 class IngestReportsCommand extends Command
 {
     protected $signature = 'reports:ingest
-                            {--path= : Path to a .json file or directory (default: storage/reports/import)}
+                            {--path= : Path to a .json file or directory (default: storage/reports/inbox)}
                             {--move= : Directory to move successfully ingested files into (default: storage/reports/ingested)}';
 
     protected $description = 'Ingest one or more AI report JSON files into the database';
@@ -24,7 +24,7 @@ class IngestReportsCommand extends Command
 
     public function handle(): int
     {
-        $path    = $this->option('path') ?? storage_path('reports/import');
+        $path    = $this->option('path') ?? storage_path('reports/inbox');
         $moveDir = $this->option('move') ?? storage_path('reports/ingested');
 
         if (! file_exists($path)) {
@@ -33,8 +33,10 @@ class IngestReportsCommand extends Command
             return self::FAILURE;
         }
 
-        $files = is_dir($path)
-            ? collect(File::files($path))->filter(fn ($f) => $f->getExtension() === 'json')->values()
+        $isDir = is_dir($path);
+
+        $files = $isDir
+            ? collect(File::allFiles($path))->filter(fn ($f) => $f->getExtension() === 'json')->values()
             : collect([new \SplFileInfo($path)]);
 
         if ($files->isEmpty()) {
@@ -42,8 +44,6 @@ class IngestReportsCommand extends Command
 
             return self::SUCCESS;
         }
-
-        File::ensureDirectoryExists($moveDir);
 
         $created = $skipped = $errors = 0;
 
@@ -68,7 +68,14 @@ class IngestReportsCommand extends Command
                     $skipped++;
                 }
 
-                $dest = rtrim($moveDir, '/') . '/' . $file->getBasename();
+                if ($isDir) {
+                    $relative = ltrim(str_replace(rtrim(realpath($path), '/'), '', $filePath), '/');
+                    $dest     = rtrim($moveDir, '/') . '/' . $relative;
+                } else {
+                    $dest = rtrim($moveDir, '/') . '/' . $file->getBasename();
+                }
+
+                File::ensureDirectoryExists(dirname($dest));
                 File::move($filePath, $dest);
                 $this->line("  Moved to: {$dest}");
             } catch (ValidationException $e) {

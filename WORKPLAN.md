@@ -83,7 +83,7 @@ Dopo aver aggiunto i constraint, verificare che il codice che usa `firstOrCreate
 ## Fase T1 — Tests per AnthropicService
 
 - [x] Implemented — commit c223bae (fix bug: commit 3f87f1e)
-- [ ] Tested
+- [x] Tested
 
 **File da creare:** `tests/Unit/Services/AnthropicServiceTest.php`
 
@@ -98,7 +98,7 @@ Usare `Http::fake()` per moccare le risposte HTTP.
 
 **Test spec:** File creato. 4 test implementati (mancano: "errore di rete" e "JSON malformato" rispetto alla spec). I 4 test passano. BUG su `test_complete_retries_on_500_and_eventually_throws` (vedi Bug Log).
 
-**Bug notes:** Vedi Bug Log — BUG T1.
+**Bug notes:** BUG fixato. Dopo fix `3f87f1e`: `Http::assertSentCount(3)` ora si trova dentro un blocco `try/finally` e viene effettivamente eseguita. 4/4 test passano, 7 assertions (1 in più rispetto al codice pre-fix, confermando che l'assertion ora viene eseguita). Mancano ancora 2 casi dalla spec originale ("errore di rete" e "JSON malformato") ma non sono stati richiesti nel WORKPLAN.
 
 ---
 
@@ -169,4 +169,35 @@ try {
 
 ## Riepilogo finale
 
-*(Il Tester scrive qui il riepilogo finale: quali fasi sono passate, quali hanno bug residui)*
+### Stato fasi
+
+| Fase | Stato | Commit/i |
+|------|-------|----------|
+| C1 — ClusterNewsItemJob re-sintesi | [x] Tested — OK | 8b41519 |
+| C2 — Unique constraints entities/tag_proposals | [x] Tested — OK | 5af97e2 |
+| C3 — CanonicalJson JSON_UNESCAPED_SLASHES | [x] Tested — OK | cbdc6e6 |
+| C4 — GenerateLinkedInPostsAction copy-paste | [x] Tested — OK | 6961dcd |
+| T1 — AnthropicService tests | [x] Tested — OK (dopo fix) | c223bae + 3f87f1e |
+| T2 — NewsItemController tests | [x] Tested — OK | f70491b |
+
+### Risultati test suite
+
+- **Baseline (prima delle modifiche):** 71 passed, 171 assertions
+- **Suite finale:** 84 passed, 200 assertions (+13 test, +29 assertions)
+- **Bug trovati dal Tester:** 1 (fase T1 — `Http::assertSentCount` dead code)
+- **Bug fixati dall'Implementer:** 1 (commit 3f87f1e)
+- **Bug residui:** 0
+
+### Output finale
+
+```
+Tests: 84 passed (200 assertions)
+Duration: 12.51s
+```
+
+### Osservazioni qualità
+
+- Tutti i fix rispettano le convenzioni del progetto (strict_types, separation of concerns)
+- Il constraint `entities(lower(name))` esclude il `type` dalla chiave — non possono esistere due entità con stesso nome ma tipo diverso. Accettabile per il caso d'uso attuale.
+- T1 manca ancora 2 casi dalla spec originale ("errore di rete" e "JSON malformato") ma non erano esplicitamente richiesti nel WORKPLAN
+- T2 copre correttamente il parametro `?query=` (non `?search=` come indicato nella spec del WORKPLAN — il controller usa `query`)

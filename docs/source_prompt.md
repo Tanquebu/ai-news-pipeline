@@ -157,7 +157,7 @@ ESEMPIO DI UN ITEM BEN FORMATO:
 
 ## Note operative
 
-- **Salvataggio file**: dopo aver ricevuto la risposta, copio il blocco JSON in un file `inbox/YYYY-MM-DD/<ai_name>.json`. Il nome `<ai_name>` segue una convenzione mia (es. `claude.json`, `gpt.json`, `gemini.json`) e identifica l'AI di origine indipendentemente dal campo `source_ai` interno.
+- **Salvataggio file**: dopo aver ricevuto la risposta, copio il blocco JSON in un file `storage/reports/inbox/YYYY-MM-DD/<ai_name>.json`. Il nome `<ai_name>` segue una convenzione mia (es. `claude.json`, `gpt.json`, `gemini.json`) e identifica l'AI di origine indipendentemente dal campo `source_ai` interno.
 
 - **Cosa fa l'ingest**: il command `reports:ingest` calcola un hash canonicalizzato del payload e salta i duplicati. Reingerire lo stesso file è no-op.
 

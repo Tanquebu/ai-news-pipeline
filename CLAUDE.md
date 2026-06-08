@@ -27,8 +27,8 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 ./vendor/bin/sail artisan migrate:fresh --seed
 
 # Pipeline
-./vendor/bin/sail artisan reports:ingest                      # usa storage/reports/import, sposta in storage/reports/ingested
-./vendor/bin/sail artisan reports:ingest --path=<path>        # path custom, sposta in storage/reports/ingested
+./vendor/bin/sail artisan reports:ingest                      # usa storage/reports/inbox (ricorsivo), sposta in storage/reports/ingested
+./vendor/bin/sail artisan reports:ingest --path=<path>        # path custom (file o directory), sposta in storage/reports/ingested
 ./vendor/bin/sail artisan reports:ingest --path=<p> --move=<d> # path e destinazione custom
 ./vendor/bin/sail artisan reports:reprocess <report_id>
 ./vendor/bin/sail artisan clusters:rescore

@@ -28,12 +28,12 @@ class SynthesizeClusterJob implements ShouldQueue
 
     public function handle(LLMClient $llm, ScoringService $scoring): void
     {
-        $cluster = Cluster::with(['newsItems', 'tags'])->findOrFail($this->clusterId);
+        $cluster = Cluster::with(['newsItems.sources', 'tags'])->findOrFail($this->clusterId);
 
         $allTagSlugs = Tag::pluck('slug')->all();
         $prompt      = $this->buildPrompt($cluster, $allTagSlugs);
 
-        $raw  = $llm->complete($prompt, maxTokens: 1024);
+        $raw  = $llm->complete($prompt, maxTokens: 2048);
         $data = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
 
         $cluster->update([
@@ -71,12 +71,21 @@ class SynthesizeClusterJob implements ShouldQueue
 
     private function buildPrompt(Cluster $cluster, array $allTagSlugs): string
     {
-        $items = $cluster->newsItems->map(fn ($item) => implode("\n", [
-            "- [{$item->section->value}] {$item->title}",
-            "  {$item->summary}",
-            '  Entità: ' . implode(', ', $item->entities ?? []),
-            '  Tag grezzi: ' . implode(', ', $item->raw_tags ?? []),
-        ]))->join("\n");
+        $items = $cluster->newsItems->map(function ($item) {
+            $lines = [
+                "- [{$item->section->value}] {$item->title}",
+                "  {$item->summary}",
+                '  Entità: ' . implode(', ', $item->entities ?? []),
+                '  Tag grezzi: ' . implode(', ', $item->raw_tags ?? []),
+            ];
+
+            if ($item->sources->isNotEmpty()) {
+                $sourceList = $item->sources->map(fn ($s) => "{$s->name} ({$s->url})")->join(', ');
+                $lines[] = "  Fonti: {$sourceList}";
+            }
+
+            return implode("\n", $lines);
+        })->join("\n");
 
         $tagList = implode(', ', $allTagSlugs);
         $count   = $cluster->newsItems->count();
@@ -93,7 +102,7 @@ class SynthesizeClusterJob implements ShouldQueue
         Restituisci ESCLUSIVAMENTE un oggetto JSON valido con questi campi:
         {
           "canonical_title": "titolo sintetico del cluster",
-          "canonical_summary": "2-4 frasi in italiano che sintetizzano il consenso tra le fonti",
+          "canonical_summary": "Testo in italiano di 6-10 frasi strutturato in tre parti: (1) contesto e attori principali coinvolti, (2) cosa è successo concretamente e quali sono le implicazioni immediate, (3) perché è rilevante per chi segue l'AI e cosa vale la pena approfondire. Scrivi in modo denso e informativo, non giornalistico.",
           "tags": ["slug1", "slug2"],
           "tag_proposals": [{"slug": "nuovo-slug", "reason": "motivazione"}],
           "novelty_score": 0.0

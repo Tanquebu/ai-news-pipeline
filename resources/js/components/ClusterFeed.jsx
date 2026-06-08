@@ -3,10 +3,15 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 
 export default function ClusterFeed() {
-    const [clusters, setClusters] = useState([]);
-    const [loading, setLoading]   = useState(true);
-    const [error, setError]       = useState(null);
-    const [filters, setFilters]   = useState({ score_min: '', tag: '', since: '' });
+    const [clusters, setClusters]   = useState([]);
+    const [loading, setLoading]     = useState(true);
+    const [error, setError]         = useState(null);
+    const [filters, setFilters]     = useState({ score_min: '', tag: '', since: '', source_ai: '' });
+    const [generators, setGenerators] = useState([]);
+
+    useEffect(() => {
+        api.getGenerators().then(setGenerators).catch(() => {});
+    }, []);
 
     const load = () => {
         setLoading(true);
@@ -49,6 +54,16 @@ export default function ClusterFeed() {
                     onChange={(e) => setFilters({ ...filters, since: e.target.value })}
                     className="border rounded px-3 py-1.5 text-sm"
                 />
+                <select
+                    value={filters.source_ai}
+                    onChange={(e) => setFilters({ ...filters, source_ai: e.target.value })}
+                    className="border rounded px-3 py-1.5 text-sm"
+                >
+                    <option value="">Tutti i generatori</option>
+                    {generators.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                    ))}
+                </select>
                 <button type="submit" className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm">
                     Filtra
                 </button>
