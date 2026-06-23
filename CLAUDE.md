@@ -38,8 +38,9 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 ./vendor/bin/sail artisan horizon                        # produzione con Redis
 
 # Frontend
-./vendor/bin/sail npm run build   # build statica (sufficiente per uso normale)
-./vendor/bin/sail npm run dev     # dev server con HMR (secondo terminale)
+./vendor/bin/sail npm run build   # build statica — solo su macchina locale
+# Su VPS (Docker rootless): sail npm ignora WWWUSER, usare:
+docker exec -u root ai-news-pipeline-ai-news-1 bash -c "cd /var/www/html && npm run build"
 
 # Test
 ./vendor/bin/sail test

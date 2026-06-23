@@ -38,6 +38,8 @@ export const api = {
 
     getGenerators: () => request('GET', '/reports/generators'),
 
+    ingestReport: (data) => request('POST', '/reports/ingest', data),
+
     deleteReport: (id) => request('DELETE', `/reports/${id}`),
 
     getPublications: (params = {}) =>
