@@ -24,6 +24,7 @@ services:
         depends_on:
             - pgsql
             - redis
+        restart: unless-stopped
     pgsql:
         image: 'pgvector/pgvector:pg16'
         ports:
@@ -49,6 +50,7 @@ services:
                 - '${DB_USERNAME}'
             retries: 3
             timeout: 5s
+        restart: unless-stopped
     redis:
         image: 'redis:alpine'
         ports:
@@ -64,6 +66,26 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+        restart: unless-stopped
+    worker:
+        build:
+            context: './vendor/laravel/sail/runtimes/8.5'
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: 'sail-8.5/app'
+        command: php artisan queue:work --sleep=3 --tries=3
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - pgsql
+            - redis
+        restart: unless-stopped
 networks:
     sail:
         driver: bridge
