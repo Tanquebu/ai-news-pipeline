@@ -1,0 +1,55 @@
+/* ============================================================
+ * UI direction — token comuni v1.0.0, sorgente canonica
+ * ------------------------------------------------------------
+ * Design token condivisi tra i frontend della famiglia
+ * (Tailwind v4 @theme + override dark). Modifica QUI e propaga
+ * negli app.css dei singoli progetti. Non editare le copie.
+ * ============================================================ */
+
+@theme {
+  --font-geist-sans: "Geist";
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-app: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f5;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-fg: #0a0a0a;
+  --color-fg-secondary: #525252;
+  --color-fg-muted: #a3a3a3;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-soft: #eff6ff;
+  --color-primary-softer: #dbeafe;
+  --color-on-primary: #ffffff;
+  --color-success: #16a34a;
+  --color-success-soft: #f0fdf4;
+  --color-success-softer: #dcfce7;
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-warning-softer: #fef3c7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-danger-softer: #fee2e2;
+  --color-info: #0284c7;
+  --color-info-soft: #f0f9ff;
+  --color-info-softer: #e0f2fe;
+  --color-focus: #2563eb;
+  --radius-card: 0.5rem;
+  --radius-modal: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-app: #0a0a0a;
+    --color-surface: #171717;
+    --color-surface-muted: #262626;
+    --color-border: #262626;
+    --color-border-strong: #404040;
+    --color-fg: #fafafa;
+    --color-fg-secondary: #a3a3a3;
+    --color-fg-muted: #737373;
+  }
+}

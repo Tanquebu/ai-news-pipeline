@@ -43,7 +43,7 @@ function PublicationItem({ pub, onUpdate }) {
             <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{pub.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-neutral-500 mt-0.5">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-mono ${STATUS_COLORS[pub.status]}`}>
                             {pub.kind}
                         </span>
@@ -87,7 +87,7 @@ function PublicationItem({ pub, onUpdate }) {
             </div>
 
             {!editing && (
-                <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap line-clamp-4">{pub.body}</p>
+                <p className="text-sm text-neutral-700 mt-3 whitespace-pre-wrap line-clamp-4">{pub.body}</p>
             )}
 
             {editing && (
@@ -139,7 +139,7 @@ export default function PublicationsList() {
                 ))}
             </div>
 
-            {loading && <p className="text-gray-500">Caricamento…</p>}
+            {loading && <p className="text-neutral-500">Caricamento…</p>}
 
             <ul className="space-y-4">
                 {publications.map((pub) => (
@@ -148,7 +148,7 @@ export default function PublicationsList() {
             </ul>
 
             {!loading && publications.length === 0 && (
-                <p className="text-gray-500">Nessuna pubblicazione trovata.</p>
+                <p className="text-neutral-500">Nessuna pubblicazione trovata.</p>
             )}
         </div>
     );

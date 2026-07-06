@@ -48,12 +48,12 @@ function IngestModal({ onClose, onSuccess }) {
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="p-6 border-b flex justify-between items-center shrink-0">
                     <h2 className="text-lg font-semibold">Importa report</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Sorgente AI</label>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">Sorgente AI</label>
                             <input
                                 list="generators-list"
                                 value={sourceAi}
@@ -67,7 +67,7 @@ function IngestModal({ onClose, onSuccess }) {
                             </datalist>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Data report</label>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">Data report</label>
                             <input
                                 type="date"
                                 value={reportDate}
@@ -78,8 +78,8 @@ function IngestModal({ onClose, onSuccess }) {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Items <span className="font-normal text-gray-400">(array JSON)</span>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                            Items <span className="font-normal text-neutral-400">(array JSON)</span>
                         </label>
                         <textarea
                             value={itemsJson}
@@ -99,7 +99,7 @@ function IngestModal({ onClose, onSuccess }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="text-sm px-4 py-2 rounded-lg border hover:bg-gray-50"
+                            className="text-sm px-4 py-2 rounded-lg border hover:bg-neutral-50"
                         >
                             Annulla
                         </button>
@@ -155,10 +155,10 @@ export default function ReportsList() {
                 </button>
             </div>
 
-            {loading && <p className="text-gray-500">Caricamento…</p>}
+            {loading && <p className="text-neutral-500">Caricamento…</p>}
 
             {!loading && reports.length === 0 && (
-                <p className="text-gray-500">Nessun report importato.</p>
+                <p className="text-neutral-500">Nessun report importato.</p>
             )}
 
             <ul className="space-y-2">
@@ -167,8 +167,8 @@ export default function ReportsList() {
                         className="bg-white border rounded-lg p-4 shadow-sm flex justify-between items-center gap-4">
                         <div>
                             <p className="font-medium">{r.report_date}</p>
-                            <p className="text-sm text-gray-500 mt-0.5">
-                                <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs mr-1">
+                            <p className="text-sm text-neutral-500 mt-0.5">
+                                <span className="bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded text-xs mr-1">
                                     {r.source_ai}
                                 </span>
                                 {r.news_items_count} {r.news_items_count === 1 ? 'notizia' : 'notizie'}

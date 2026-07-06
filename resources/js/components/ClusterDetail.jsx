@@ -38,7 +38,7 @@ export default function ClusterDetail() {
             .catch((e) => { alert(e.message); setArchiving(false); });
     };
 
-    if (loading) return <p className="p-6 text-gray-500">Caricamento…</p>;
+    if (loading) return <p className="p-6 text-neutral-500">Caricamento…</p>;
     if (error)   return <p className="p-6 text-red-500">{error}</p>;
 
     const { cluster, publications } = data;
@@ -49,7 +49,7 @@ export default function ClusterDetail() {
 
             <section>
                 <h1 className="text-2xl font-bold">{cluster.canonical_title}</h1>
-                <p className="text-gray-600 mt-2">{cluster.canonical_summary}</p>
+                <p className="text-neutral-600 mt-2">{cluster.canonical_summary}</p>
                 <div className="flex gap-1 mt-3 flex-wrap">
                     {cluster.tags?.map((t) => (
                         <span key={t.slug} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
@@ -57,7 +57,7 @@ export default function ClusterDetail() {
                         </span>
                     ))}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-neutral-400 mt-2">
                     Score: {Number(cluster.total_score).toFixed(3)} · Consensus: {cluster.consensus_count}
                     {cluster.news_items_min_event_date && (
                         <> · Evento: {cluster.news_items_min_event_date}{cluster.news_items_max_event_date && cluster.news_items_max_event_date !== cluster.news_items_min_event_date ? ` → ${cluster.news_items_max_event_date}` : ''}</>
@@ -81,11 +81,11 @@ export default function ClusterDetail() {
                     >
                         {generating === 'article' ? '…' : 'Genera Articolo'}
                     </button>
-                    <span className="border-l border-gray-200 h-6 mx-1" />
+                    <span className="border-l border-neutral-200 h-6 mx-1" />
                     <button
                         onClick={archive}
                         disabled={generating !== null || archiving}
-                        className="text-gray-500 border border-gray-300 px-4 py-2 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                        className="text-neutral-500 border border-neutral-300 px-4 py-2 rounded text-sm hover:bg-neutral-50 disabled:opacity-50"
                     >
                         {archiving ? '…' : 'Archivia'}
                     </button>
@@ -100,12 +100,12 @@ export default function ClusterDetail() {
                             <div className="flex justify-between items-start gap-2">
                                 <p className="font-medium">[{item.section}] {item.title}</p>
                                 {item.report?.source_ai && (
-                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded shrink-0">
+                                    <span className="text-xs bg-neutral-100 text-neutral-500 px-2 py-0.5 rounded shrink-0">
                                         {item.report.source_ai}
                                     </span>
                                 )}
                             </div>
-                            <p className="text-gray-600 mt-1">{item.summary}</p>
+                            <p className="text-neutral-600 mt-1">{item.summary}</p>
                             {item.sources?.length > 0 && (
                                 <ul className="mt-2 space-y-0.5">
                                     {item.sources.map((s) => (

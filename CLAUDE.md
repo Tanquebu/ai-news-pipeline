@@ -6,6 +6,8 @@ Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani
 
 **Fonte di verità funzionale e architetturale: `SPEC.md`.** Questo file copre solo convenzioni operative e regole di lavoro.
 
+UI: seguire `docs/ui-direction.md`.
+
 ## Stack
 
 - PHP 8.3+ / Laravel (ultima stabile)

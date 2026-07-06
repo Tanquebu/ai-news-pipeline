@@ -9,7 +9,7 @@ import ReportsList from './components/ReportsList';
 function Nav() {
     return (
         <nav className="bg-white border-b px-6 py-3 flex gap-6 items-center">
-            <span className="font-bold text-gray-800">AI News Pipeline</span>
+            <span className="font-bold text-neutral-800">AI News Pipeline</span>
             <Link to="/" className="text-sm text-blue-600 hover:underline">Feed</Link>
             <Link to="/publications" className="text-sm text-blue-600 hover:underline">Pubblicazioni</Link>
             <Link to="/reports" className="text-sm text-blue-600 hover:underline">Report</Link>
