@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Jobs\ChunkDocumentJob;
+use App\Jobs\EmbedNewsItemJob;
 use App\Models\Document;
 use App\Models\IngestionEvent;
+use App\Models\NewsItem;
+use App\Models\NewsItemSource;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +18,13 @@ use Illuminate\Validation\ValidationException;
 
 class IngestDocumentAction
 {
+    /**
+     * Sezione assegnata ai news_items nati da ingest documentale: le sezioni
+     * (strategic|technical|tooling) vengono dalla tassonomia dei report LLM,
+     * gli item di intake non ne hanno una propria.
+     */
+    private const NEWS_SECTION = 'strategic';
+
     /**
      * Ingest a single document from an external source system, idempotently.
      *
@@ -74,6 +84,12 @@ class IngestDocumentAction
             $document = Document::create($attributes);
         }
 
+        // Ciò che è notizia lo decide la category di intake (roadmap v2, M1):
+        // solo category=news genera anche un news_item collegato al document.
+        $newsItem = ($data['category'] ?? null) === 'news'
+            ? $this->syncNewsItem($document, $data)
+            : null;
+
         if ($event !== null) {
             // Retry di una tripla failed/queued: si riusa lo stesso evento.
             $event->update([
@@ -97,6 +113,12 @@ class IngestDocumentAction
         // ha afterCommit=true, quindi parte solo dopo il commit della transazione.
         ChunkDocumentJob::dispatch($document->id);
 
+        if ($newsItem !== null) {
+            // Aggancio al flusso news esistente (embed → cluster), con la
+            // stessa semantica afterCommit della catena document.
+            EmbedNewsItemJob::dispatch($newsItem->id)->afterCommit();
+        }
+
         return [
             'status'       => $updated ? 'updated' : 'ingested',
             'ingestion_id' => $event->id,
@@ -117,7 +139,47 @@ class IngestDocumentAction
             'doc_type'         => ['nullable', 'string', 'in:article,pdf,note'],
             'lang'             => ['nullable', 'string'],
             'source'           => ['nullable', 'string'],
+            // Category raw del sistema sorgente (es. intake: news, tool,
+            // research...): stringa libera, il vocabolario evolve lato sorgente.
+            'category'         => ['nullable', 'string', 'max:100'],
         ];
+    }
+
+    /**
+     * Crea (o riusa, se il document è già collegato) il news_item per un
+     * document con category=news. Nessun vincolo unique su news_items: la
+     * deduplicazione poggia sull'idempotenza dell'ingest — i duplicate escono
+     * prima di arrivare qui, gli updated riusano il news_item collegato.
+     */
+    private function syncNewsItem(Document $document, array $data): NewsItem
+    {
+        $attributes = [
+            'section'  => self::NEWS_SECTION,
+            'title'    => $data['title'],
+            'summary'  => $data['summary'] ?? $data['title'],
+            'entities' => [],
+            'raw_tags' => [],
+        ];
+
+        $newsItem = $document->news_item_id !== null
+            ? NewsItem::find($document->news_item_id)
+            : null;
+
+        if ($newsItem !== null) {
+            $newsItem->update($attributes);
+        } else {
+            $newsItem = NewsItem::create($attributes + ['report_id' => null]);
+            $document->update(['news_item_id' => $newsItem->id]);
+        }
+
+        if (($data['url'] ?? null) !== null) {
+            NewsItemSource::updateOrCreate(
+                ['news_item_id' => $newsItem->id, 'position' => 0],
+                ['name' => $data['source'] ?? $data['source_system'], 'url' => $data['url']],
+            );
+        }
+
+        return $newsItem;
     }
 
     private function findEvent(array $data): ?IngestionEvent
