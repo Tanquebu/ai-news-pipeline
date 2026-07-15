@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\ClusterController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\NewsItemController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\ReportController;
@@ -15,6 +16,8 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::post('/clusters/{cluster}/archive', [ClusterController::class, 'archive']);
     Route::post('/clusters/{cluster}/generate/linkedin', [ClusterController::class, 'generateLinkedIn']);
     Route::post('/clusters/{cluster}/generate/article', [ClusterController::class, 'generateArticle']);
+
+    Route::post('/documents/ingest', [DocumentController::class, 'ingest']);
 
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/generators', [ReportController::class, 'generators']);
