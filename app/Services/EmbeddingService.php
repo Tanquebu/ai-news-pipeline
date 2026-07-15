@@ -16,4 +16,10 @@ class EmbeddingService
     {
         return $this->driver->embed($item->title . "\n" . $item->summary);
     }
+
+    /** @return float[] */
+    public function embedText(string $text): array
+    {
+        return $this->driver->embed($text);
+    }
 }

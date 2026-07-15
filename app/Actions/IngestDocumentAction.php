@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Jobs\ChunkDocumentJob;
 use App\Models\Document;
 use App\Models\IngestionEvent;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -92,7 +93,9 @@ class IngestDocumentAction
             ]);
         }
 
-        // T1.3: qui verrà dispatchato ChunkDocumentJob (il document resta status=pending).
+        // Il document resta status=pending: il chunking avviene in coda. Il job
+        // ha afterCommit=true, quindi parte solo dopo il commit della transazione.
+        ChunkDocumentJob::dispatch($document->id);
 
         return [
             'status'       => $updated ? 'updated' : 'ingested',

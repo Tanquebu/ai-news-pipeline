@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Jobs\ChunkDocumentJob;
 use App\Models\Document;
 use App\Models\IngestionEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -21,6 +23,7 @@ class DocumentIngestApiTest extends TestCase
         parent::setUp();
         config(['pipeline.api_token' => $this->token]);
         Storage::fake('local');
+        Queue::fake();
     }
 
     // --- helpers ---
@@ -213,6 +216,35 @@ class DocumentIngestApiTest extends TestCase
             ->assertUnauthorized();
 
         $this->assertSame(0, Document::count());
+    }
+
+    public function test_ingest_dispatches_chunk_job_for_ingested_and_updated_but_not_duplicate(): void
+    {
+        // Primo ingest → ingested → 1 dispatch.
+        $first = $this->authed()->postJson('/api/documents/ingest', $this->payload());
+        $first->assertStatus(202)->assertJsonPath('status', 'ingested');
+
+        $documentId = $first->json('document_id');
+
+        Queue::assertPushed(ChunkDocumentJob::class, 1);
+        Queue::assertPushed(ChunkDocumentJob::class, fn (ChunkDocumentJob $job) => $job->documentId === $documentId);
+
+        // Retry identico → duplicate → nessun nuovo dispatch.
+        $this->authed()->postJson('/api/documents/ingest', $this->payload())
+            ->assertStatus(202)
+            ->assertJsonPath('status', 'duplicate');
+
+        Queue::assertPushed(ChunkDocumentJob::class, 1);
+
+        // Contenuto cambiato → updated → re-chunking da zero.
+        $this->authed()->postJson('/api/documents/ingest', $this->payload([
+            'content_hash' => hash('sha256', 'source content v2'),
+            'full_text'    => 'The revised full text.',
+        ]))
+            ->assertStatus(202)
+            ->assertJsonPath('status', 'updated');
+
+        Queue::assertPushed(ChunkDocumentJob::class, 2);
     }
 
     public function test_ingest_without_full_text_creates_document_without_raw_file(): void
