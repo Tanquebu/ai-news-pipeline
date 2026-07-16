@@ -46,3 +46,60 @@ export async function listClusters(params: { since?: string }): Promise<{ data: 
 export async function generateLinkedIn(clusterId: number): Promise<unknown[]> {
     return apiFetch(`/clusters/${clusterId}/generate/linkedin`, { method: 'POST' }) as Promise<unknown[]>;
 }
+
+export interface RagSearchResult {
+    chunk_id: number;
+    document_id: number;
+    title: string;
+    url: string | null;
+    doc_type: string;
+    source: string;
+    chunk_index: number;
+    snippet: string;
+    score: number;
+}
+
+export interface RagSearchResponse {
+    query: string;
+    count: number;
+    results: RagSearchResult[];
+}
+
+export interface DocumentChunk {
+    id: number;
+    document_id: number;
+    chunk_index: number;
+    content: string;
+}
+
+export interface DocumentDetail {
+    id: number;
+    source: string;
+    url: string | null;
+    title: string;
+    doc_type: string;
+    lang: string | null;
+    summary: string | null;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    chunks: DocumentChunk[];
+}
+
+export async function ragSearch(params: {
+    query: string;
+    limit?: number;
+    doc_type?: string;
+    source?: string;
+}): Promise<RagSearchResponse> {
+    const qs = new URLSearchParams();
+    qs.set('q', params.query);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.doc_type) qs.set('doc_type', params.doc_type);
+    if (params.source)   qs.set('source', params.source);
+    return apiFetch(`/rag/search?${qs}`) as Promise<RagSearchResponse>;
+}
+
+export async function getDocument(id: number): Promise<{ document: DocumentDetail }> {
+    return apiFetch(`/documents/${id}`) as Promise<{ document: DocumentDetail }>;
+}

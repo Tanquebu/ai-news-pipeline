@@ -4,7 +4,16 @@ import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { searchNewsItems, getCluster, listClusters, generateLinkedIn } from './api.js';
+import {
+    searchNewsItems,
+    getCluster,
+    listClusters,
+    generateLinkedIn,
+    ragSearch,
+    getDocument,
+    type RagSearchResponse,
+    type DocumentDetail,
+} from './api.js';
 
 const server = new Server(
     { name: 'ai-news-pipeline', version: '1.0.0' },
@@ -63,8 +72,63 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 required: ['cluster_id'],
             },
         },
+        {
+            name: 'search_knowledge',
+            description: 'Semantic search over the RAG knowledge base (ingested articles, PDFs, notes). Returns matching chunks with title, url, snippet, score, and document/chunk references for follow-up with get_document.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    query:    { type: 'string', description: 'Natural-language search query' },
+                    limit:    { type: 'number', description: 'Maximum results to return' },
+                    doc_type: { type: 'string', enum: ['article', 'pdf', 'note'], description: 'Filter by document type' },
+                    source:   { type: 'string', description: 'Filter by document source' },
+                },
+                required: ['query'],
+            },
+        },
+        {
+            name: 'get_document',
+            description: 'Get a knowledge-base document by ID: metadata (title, source, url, type, summary) plus the full content of its chunks in order.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    document_id: { type: 'number', description: 'Document ID (as returned by search_knowledge)' },
+                },
+                required: ['document_id'],
+            },
+        },
     ],
 }));
+
+function formatSearchResults(response: RagSearchResponse): string {
+    const header = `Query: "${response.query}" — ${response.count} result(s)`;
+    if (response.results.length === 0) {
+        return `${header}\n\nNo matches found.`;
+    }
+    const blocks = response.results.map((r, i) => [
+        `${i + 1}. ${r.title} (score ${r.score})`,
+        `   type: ${r.doc_type} | source: ${r.source}`,
+        `   url: ${r.url ?? '-'}`,
+        `   document_id: ${r.document_id} | chunk_id: ${r.chunk_id} | chunk_index: ${r.chunk_index}`,
+        `   ${r.snippet}`,
+    ].join('\n'));
+    return `${header}\n\n${blocks.join('\n\n')}`;
+}
+
+function formatDocument(doc: DocumentDetail): string {
+    const meta = [
+        `Document #${doc.id}: ${doc.title}`,
+        `type: ${doc.doc_type} | source: ${doc.source} | status: ${doc.status}`,
+        `url: ${doc.url ?? '-'}`,
+        `lang: ${doc.lang ?? '-'} | created: ${doc.created_at} | updated: ${doc.updated_at}`,
+        `summary: ${doc.summary ?? '-'}`,
+    ].join('\n');
+    const chunks = [...doc.chunks]
+        .sort((a, b) => a.chunk_index - b.chunk_index)
+        .map((c) => `--- chunk ${c.chunk_index} (id ${c.id}) ---\n${c.content}`)
+        .join('\n\n');
+    return `${meta}\n\nContent (${doc.chunks.length} chunk(s)):\n\n${chunks}`;
+}
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args = {} } = request.params;
@@ -101,12 +165,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 break;
             }
 
+            case 'search_knowledge': {
+                const { query, limit, doc_type, source } = args as {
+                    query: string; limit?: number; doc_type?: string; source?: string;
+                };
+                const response = await ragSearch({ query, limit, doc_type, source });
+                result = formatSearchResults(response);
+                break;
+            }
+
+            case 'get_document': {
+                const { document_id } = args as { document_id: number };
+                try {
+                    const { document } = await getDocument(document_id);
+                    result = formatDocument(document);
+                } catch (error) {
+                    if ((error as Error).message.startsWith('API 404')) {
+                        throw new Error(`Document ${document_id} not found`);
+                    }
+                    throw error;
+                }
+                break;
+            }
+
             default:
                 throw new Error(`Unknown tool: ${name}`);
         }
 
         return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            content: [{
+                type: 'text',
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+            }],
         };
     } catch (error) {
         return {
