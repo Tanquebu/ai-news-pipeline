@@ -8,6 +8,7 @@ use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
@@ -46,5 +47,12 @@ class Document extends Model
     public function chunks(): HasMany
     {
         return $this->hasMany(DocumentChunk::class)->orderBy('chunk_index');
+    }
+
+    public function dossiers(): BelongsToMany
+    {
+        return $this->belongsToMany(Dossier::class)
+            ->withPivot('similarity')
+            ->withTimestamps();
     }
 }

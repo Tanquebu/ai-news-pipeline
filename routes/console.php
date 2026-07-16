@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('clusters:archive')->daily();
+Schedule::command('dossiers:consolidate')->dailyAt('03:30');

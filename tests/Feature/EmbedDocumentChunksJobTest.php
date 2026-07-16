@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Jobs\AssignDocumentToDossierJob;
 use App\Jobs\EmbedDocumentChunksJob;
 use App\Models\Document;
 use App\Models\DocumentChunk;
 use App\Services\EmbeddingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\TestCase;
@@ -16,6 +18,12 @@ use Tests\TestCase;
 class EmbedDocumentChunksJobTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Bus::fake([AssignDocumentToDossierJob::class]);
+    }
 
     public function test_job_embeds_all_chunks_and_marks_document_embedded(): void
     {
@@ -72,6 +80,26 @@ class EmbedDocumentChunksJobTest extends TestCase
         $this->assertSame(
             0,
             $document->chunks()->whereNull('embedding')->count()
+        );
+    }
+
+    public function test_job_dispatches_dossier_assignment_after_embedding(): void
+    {
+        $document = Document::factory()->create(['status' => 'chunked']);
+
+        DocumentChunk::factory()->create([
+            'document_id' => $document->id,
+            'chunk_index' => 0,
+        ]);
+
+        $service = $this->createMock(EmbeddingService::class);
+        $service->method('embedText')->willReturn($this->makeEmbedding());
+
+        (new EmbedDocumentChunksJob($document->id))->handle($service);
+
+        Bus::assertDispatched(
+            AssignDocumentToDossierJob::class,
+            fn (AssignDocumentToDossierJob $job) => $job->documentId === $document->id
         );
     }
 

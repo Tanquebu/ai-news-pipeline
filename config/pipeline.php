@@ -15,6 +15,14 @@ return [
 
     'api_token' => env('PIPELINE_API_TOKEN'),
 
+    'dossier' => [
+        // Similarità coseno minima document↔centroide per l'assegnazione
+        // automatica a un dossier. Più bassa della soglia di clustering
+        // (0.85, near-duplicate): qui si cerca affinità tematica, non la
+        // stessa notizia. Da tarare sul corpus reale via env.
+        'similarity_threshold' => (float) env('DOSSIER_SIMILARITY_THRESHOLD', 0.45),
+    ],
+
     'cluster' => [
         'feed_window_days'   => (int) env('CLUSTER_FEED_WINDOW_DAYS', 14),
         'archive_after_days' => (int) env('CLUSTER_ARCHIVE_AFTER_DAYS', 14),

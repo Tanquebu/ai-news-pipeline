@@ -36,6 +36,8 @@ class EmbedDocumentChunksJob implements ShouldQueue
         }
 
         $document->update(['status' => 'embedded']);
+
+        AssignDocumentToDossierJob::dispatch($document->id);
     }
 
     public function failed(?Throwable $exception): void
