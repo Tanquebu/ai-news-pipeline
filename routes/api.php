@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ClusterController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\NewsItemController;
 use App\Http\Controllers\Api\PublicationController;
+use App\Http\Controllers\Api\RagSearchController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Middleware\ApiTokenAuth;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,9 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::post('/clusters/{cluster}/generate/article', [ClusterController::class, 'generateArticle']);
 
     Route::post('/documents/ingest', [DocumentController::class, 'ingest']);
+    Route::get('/documents/{document}', [DocumentController::class, 'show'])->whereNumber('document');
+
+    Route::get('/rag/search', [RagSearchController::class, 'search']);
 
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/generators', [ReportController::class, 'generators']);
