@@ -24,6 +24,7 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
 
     Route::get('/briefs', [BriefController::class, 'index']);
     Route::get('/briefs/{brief}', [BriefController::class, 'show'])->whereNumber('brief');
+    Route::patch('/briefs/{brief}', [BriefController::class, 'update'])->whereNumber('brief');
 
     Route::post('/documents/ingest', [DocumentController::class, 'ingest']);
     Route::get('/documents/{document}', [DocumentController::class, 'show'])->whereNumber('document');

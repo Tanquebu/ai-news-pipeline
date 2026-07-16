@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Services\BriefGenerationService;
+use App\Services\BriefWebhookNotifier;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
 class GenerateBriefsCommand extends Command
 {
@@ -15,7 +17,7 @@ class GenerateBriefsCommand extends Command
 
     protected $description = 'Generate weekly editorial briefs from the top-scoring candidate dossiers';
 
-    public function handle(BriefGenerationService $briefs): int
+    public function handle(BriefGenerationService $briefs, BriefWebhookNotifier $webhook): int
     {
         $dryRun = (bool) $this->option('dry-run');
 
@@ -33,7 +35,7 @@ class GenerateBriefsCommand extends Command
             return self::SUCCESS;
         }
 
-        $generated = 0;
+        $generated = new Collection();
         $failures  = 0;
 
         foreach ($candidates as $dossier) {
@@ -76,7 +78,7 @@ class GenerateBriefsCommand extends Command
                 continue;
             }
 
-            $generated++;
+            $generated->push($brief);
             $this->line("{$dossier->slug}: brief #{$brief->id} \"{$brief->title}\"");
         }
 
@@ -86,7 +88,12 @@ class GenerateBriefsCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->info("Generated {$generated} brief(s) for the week of {$periodStart->toDateString()}; {$failures} failure(s).");
+        // Delivery T3.4: riepilogo dei brief generati al webhook configurato
+        // (BRIEFS_WEBHOOK_URL). Best-effort: il notifier è no-op senza URL o
+        // senza brief, e non lancia mai — la generazione è già persistita.
+        $webhook->notify($generated);
+
+        $this->info("Generated {$generated->count()} brief(s) for the week of {$periodStart->toDateString()}; {$failures} failure(s).");
 
         return $failures > 0 ? self::FAILURE : self::SUCCESS;
     }

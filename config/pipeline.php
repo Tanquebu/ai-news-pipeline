@@ -69,6 +69,14 @@ return [
         // fonti, controargomenti, angoli) è molto più ricco della synthesis
         // dei cluster — 2048 token lo troncavano producendo JSON invalido.
         'max_tokens' => (int) env('BRIEFS_MAX_TOKENS', 4096),
+
+        // Webhook di delivery post-generazione (T3.4): se configurato,
+        // briefs:generate POST-a un riepilogo dei brief generati (id, dossier,
+        // titolo, tesi, conteggi). La pipeline resta agnostica sul consumer
+        // (oggi un workflow n8n che inoltra su Telegram). Default null =
+        // notifica disabilitata; un fallimento del webhook non fa mai fallire
+        // la generazione.
+        'webhook_url' => env('BRIEFS_WEBHOOK_URL'),
     ],
 
     'cluster' => [

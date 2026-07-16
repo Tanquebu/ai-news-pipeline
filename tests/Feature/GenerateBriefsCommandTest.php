@@ -9,6 +9,8 @@ use App\Models\Brief;
 use App\Models\Document;
 use App\Models\Dossier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class GenerateBriefsCommandTest extends TestCase
@@ -162,6 +164,72 @@ class GenerateBriefsCommandTest extends TestCase
         // interrompe il run.
         $this->assertSame(2, $fake->calls);
         $this->assertDatabaseCount('briefs', 0);
+    }
+
+    public function test_webhook_receives_summary_of_generated_briefs(): void
+    {
+        config(['pipeline.briefs.webhook_url' => 'https://hooks.example.test/anp-digest']);
+        Http::fake(['hooks.example.test/*' => Http::response(['ok' => true])]);
+        $this->bindFakeLLM();
+
+        $dossier = $this->makeCandidateDossier(0.9, documents: 3);
+
+        $this->artisan('briefs:generate')->assertSuccessful();
+
+        Http::assertSent(function (Request $request) use ($dossier) {
+            $data = $request->data();
+
+            return $request->url() === 'https://hooks.example.test/anp-digest'
+                && $request->method() === 'POST'
+                && $data['event'] === 'briefs.generated'
+                && $data['count'] === 1
+                && $data['briefs'][0]['dossier'] === $dossier->slug
+                && $data['briefs'][0]['title'] === 'Weekly brief title'
+                && $data['briefs'][0]['thesis'] === 'Central thesis.'
+                && $data['briefs'][0]['claims_count'] === 1
+                && $data['briefs'][0]['sources_count'] === 3;
+        });
+    }
+
+    public function test_webhook_not_called_when_url_not_configured(): void
+    {
+        config(['pipeline.briefs.webhook_url' => null]);
+        Http::fake();
+        $this->bindFakeLLM();
+
+        $this->makeCandidateDossier(0.9, documents: 3);
+
+        $this->artisan('briefs:generate')->assertSuccessful();
+
+        $this->assertDatabaseCount('briefs', 1);
+        Http::assertNothingSent();
+    }
+
+    public function test_webhook_not_called_when_no_briefs_generated(): void
+    {
+        config(['pipeline.briefs.webhook_url' => 'https://hooks.example.test/anp-digest']);
+        Http::fake();
+        $this->bindFakeLLM();
+
+        // Nessun dossier candidato: run legittimo con zero brief.
+        $this->artisan('briefs:generate')->assertSuccessful();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_webhook_failure_does_not_fail_generation(): void
+    {
+        config(['pipeline.briefs.webhook_url' => 'https://hooks.example.test/anp-digest']);
+        Http::fake(['hooks.example.test/*' => Http::response('boom', 500)]);
+        $this->bindFakeLLM();
+
+        $this->makeCandidateDossier(0.9, documents: 3);
+
+        // Il brief è già persistito quando parte la notifica: un webhook giù
+        // logga un warning ma non tocca l'esito del run.
+        $this->artisan('briefs:generate')->assertSuccessful();
+
+        $this->assertDatabaseCount('briefs', 1);
     }
 
     // --- helpers ---

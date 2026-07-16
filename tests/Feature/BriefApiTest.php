@@ -92,6 +92,58 @@ class BriefApiTest extends TestCase
 
         $this->getJson('/api/briefs')->assertStatus(401);
         $this->getJson("/api/briefs/{$brief->id}")->assertStatus(401);
+        $this->patchJson("/api/briefs/{$brief->id}", ['status' => 'approved'])->assertStatus(401);
+    }
+
+    public function test_patch_advances_draft_to_approved_and_approved_to_sent(): void
+    {
+        $brief = Brief::factory()->create(['status' => Brief::STATUS_DRAFT]);
+
+        $this->authed()
+            ->patchJson("/api/briefs/{$brief->id}", ['status' => 'approved'])
+            ->assertOk()
+            ->assertJsonPath('brief.id', $brief->id)
+            ->assertJsonPath('brief.status', 'approved');
+
+        $this->assertDatabaseHas('briefs', ['id' => $brief->id, 'status' => 'approved']);
+
+        $this->authed()
+            ->patchJson("/api/briefs/{$brief->id}", ['status' => 'sent'])
+            ->assertOk()
+            ->assertJsonPath('brief.status', 'sent');
+
+        $this->assertDatabaseHas('briefs', ['id' => $brief->id, 'status' => 'sent']);
+    }
+
+    public function test_patch_rejects_invalid_transitions(): void
+    {
+        $draft = Brief::factory()->create(['status' => Brief::STATUS_DRAFT]);
+        $sent  = Brief::factory()->create(['status' => Brief::STATUS_SENT]);
+
+        // Salto draft → sent: l'approvazione è una decisione umana esplicita.
+        $this->authed()
+            ->patchJson("/api/briefs/{$draft->id}", ['status' => 'sent'])
+            ->assertStatus(422);
+
+        // sent è terminale: nessuna transizione ulteriore via API.
+        $this->authed()
+            ->patchJson("/api/briefs/{$sent->id}", ['status' => 'approved'])
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('briefs', ['id' => $draft->id, 'status' => 'draft']);
+        $this->assertDatabaseHas('briefs', ['id' => $sent->id, 'status' => 'sent']);
+    }
+
+    public function test_patch_rejects_unknown_or_missing_status(): void
+    {
+        $brief = Brief::factory()->create(['status' => Brief::STATUS_DRAFT]);
+
+        // draft non è un target valido (nessun rollback via API).
+        $this->authed()->patchJson("/api/briefs/{$brief->id}", ['status' => 'draft'])->assertStatus(422);
+        $this->authed()->patchJson("/api/briefs/{$brief->id}", ['status' => 'published'])->assertStatus(422);
+        $this->authed()->patchJson("/api/briefs/{$brief->id}", [])->assertStatus(422);
+
+        $this->assertDatabaseHas('briefs', ['id' => $brief->id, 'status' => 'draft']);
     }
 
     // --- helpers ---

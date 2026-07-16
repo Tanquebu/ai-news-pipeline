@@ -44,4 +44,35 @@ class BriefController extends Controller
 
         return response()->json(['brief' => $brief]);
     }
+
+    /**
+     * Avanzamento di stato del brief lungo il ciclo editoriale (T3.4):
+     * draft → approved (decisione umana dal digest Telegram) e
+     * approved → sent (export verso il workspace avvenuto). Solo transizioni
+     * in avanti di un passo: niente salti draft→sent, niente rollback — se
+     * serve tornare indietro si interviene a mano sul DB, non via API.
+     */
+    public function update(Request $request, Brief $brief): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:' . Brief::STATUS_APPROVED . ',' . Brief::STATUS_SENT],
+        ]);
+
+        $allowed = [
+            Brief::STATUS_DRAFT    => Brief::STATUS_APPROVED,
+            Brief::STATUS_APPROVED => Brief::STATUS_SENT,
+        ];
+
+        $target = $validated['status'];
+
+        if (($allowed[$brief->status] ?? null) !== $target) {
+            return response()->json([
+                'message' => "Invalid status transition: {$brief->status} -> {$target}.",
+            ], 422);
+        }
+
+        $brief->update(['status' => $target]);
+
+        return response()->json(['brief' => $brief->fresh()->load('dossier:id,name,slug')]);
+    }
 }
