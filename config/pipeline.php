@@ -72,6 +72,14 @@ return [
     ],
 
     'scoring' => [
+        // Saturazione del consenso: consensus_count >= N → componente 1.0.
+        // Default 10 per retrocompatibilità (nato con ~5 report AI/giorno,
+        // dove il consenso misurava l'accordo tra fonti indipendenti). Con
+        // l'ingestione da intake — fonte quasi unica — il consenso va
+        // riletto come "quante volte ho salvato materiale sullo stesso
+        // tema" (interesse ricorrente personale): in prod si consiglia 3.
+        'consensus_saturation' => (int) env('SCORING_CONSENSUS_SATURATION', 10),
+
         'weight_consensus'   => (float) env('SCORING_WEIGHT_CONSENSUS', 0.35),
         'weight_novelty'     => (float) env('SCORING_WEIGHT_NOVELTY', 0.20),
         'weight_importance'  => (float) env('SCORING_WEIGHT_IMPORTANCE', 0.20),

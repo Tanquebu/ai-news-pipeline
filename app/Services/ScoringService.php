@@ -30,7 +30,13 @@ class ScoringService
         $w3 = (float) config('pipeline.scoring.weight_importance', 0.20);
         $w4 = (float) config('pipeline.scoring.weight_topic_match', 0.25);
 
-        $consensus      = min($cluster->consensus_count / 10.0, 1.0);
+        // Saturazione del consenso configurabile (SCORING_CONSENSUS_SATURATION,
+        // default 10). Con l'ingestione da intake il cluster ha quasi sempre
+        // una fonte sola: il consenso non misura più l'accordo tra testate ma
+        // "quante volte ho salvato materiale sullo stesso tema" (interesse
+        // ricorrente personale), quindi satura molto prima (prod: 3).
+        $saturation     = max(1, (int) config('pipeline.scoring.consensus_saturation', 10));
+        $consensus      = min($cluster->consensus_count / $saturation, 1.0);
         $novelty        = (float) ($cluster->novelty_score ?? 0.0);
         $importanceNorm = ($importanceAvg - 1.0) / 4.0;
 

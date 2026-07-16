@@ -167,6 +167,33 @@ class IngestReportsCommandTest extends TestCase
         $this->assertDatabaseCount('news_item_tag', 1);
     }
 
+    public function test_unmapped_raw_tags_become_tag_proposals(): void
+    {
+        $payload                         = $this->validPayload();
+        $payload['items'][0]['raw_tags'] = ['funding', 'Quantum Computing'];
+
+        $secondItem             = $payload['items'][0];
+        $secondItem['title']    = 'Second item';
+        $secondItem['raw_tags'] = ['quantum-computing'];
+        $payload['items'][]     = $secondItem;
+
+        $path = $this->writeFixture($payload);
+
+        $this->ingest($path)->assertExitCode(0);
+
+        // 'funding' è in tassonomia → mappato come tag, nessuna proposal.
+        // 'quantum-computing' è fuori tassonomia → una sola proposal,
+        // con frequenza incrementata sul duplicato del secondo item.
+        $this->assertDatabaseCount('tag_proposals', 1);
+        $this->assertDatabaseHas('tag_proposals', [
+            'slug'      => 'quantum-computing',
+            'frequency' => 2,
+            'status'    => 'pending',
+        ]);
+        $this->assertDatabaseMissing('tag_proposals', ['slug' => 'funding']);
+        $this->assertDatabaseCount('news_item_tag', 1); // solo 'funding' sul primo item
+    }
+
     public function test_directory_ingests_all_json_files(): void
     {
         $payload1              = $this->validPayload();

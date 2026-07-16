@@ -10,6 +10,7 @@ use App\Models\NewsItem;
 use App\Models\NewsItemSource;
 use App\Models\Report;
 use App\Models\Tag;
+use App\Models\TagProposal;
 use App\Support\CanonicalJson;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -103,10 +104,16 @@ class IngestReportAction
             $newsItem->resolvedEntities()->attach($entity->id);
         }
 
-        $tagIds = collect($item['raw_tags'])
+        $rawSlugs = collect($item['raw_tags'])
             ->map(fn(string $raw) => Str::slug(strtolower($raw)))
+            ->filter()
             ->unique()
-            ->map(fn(string $slug) => Tag::where('slug', $slug)->value('id'))
+            ->values();
+
+        $slugToId = Tag::whereIn('slug', $rawSlugs)->pluck('id', 'slug');
+
+        $tagIds = $rawSlugs
+            ->map(fn(string $slug) => $slugToId[$slug] ?? null)
             ->filter()
             ->values()
             ->all();
@@ -115,6 +122,29 @@ class IngestReportAction
             $newsItem->tags()->attach($tagIds);
         }
 
+        // I raw_tags fuori tassonomia non vengono più scartati in silenzio:
+        // diventano tag_proposals (stesso meccanismo della synthesis, vedi
+        // SynthesizeClusterJob), con frequenza incrementata sui duplicati.
+        foreach ($rawSlugs->diff($slugToId->keys()) as $slug) {
+            $this->proposeTag($slug);
+        }
+
         return $newsItem;
+    }
+
+    private function proposeTag(string $slug): void
+    {
+        try {
+            $record = TagProposal::firstOrCreate(
+                ['slug' => $slug],
+                ['reason' => 'Raw tag fuori tassonomia in fase di ingest', 'status' => 'pending'],
+            );
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            $record = TagProposal::firstWhere('slug', $slug);
+        }
+
+        if (! $record->wasRecentlyCreated) {
+            $record->increment('frequency');
+        }
     }
 }

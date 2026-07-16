@@ -41,6 +41,46 @@ class ScoringServiceTest extends TestCase
         $this->assertEqualsWithDelta(1.0, $cluster->total_score, 0.001);
     }
 
+    public function test_consensus_saturation_is_configurable(): void
+    {
+        config()->set('pipeline.scoring.consensus_saturation', 3);
+
+        [$cluster, $item] = $this->makeClusterWithItem(importance: 5);
+
+        $mcpTag = Tag::where('slug', 'mcp')->first();
+        $cluster->tags()->attach($mcpTag->id);
+        $cluster->update(['novelty_score' => 1.0, 'consensus_count' => 3]);
+
+        $this->service->updateScore($cluster);
+        $cluster->refresh();
+
+        // Con saturazione 3, bastano 3 item perché la componente consenso
+        // valga 1.0: tutti gli input al massimo → total_score 1.0.
+        $this->assertEqualsWithDelta(1.0, $cluster->total_score, 0.001);
+    }
+
+    public function test_consensus_below_saturation_scales_linearly(): void
+    {
+        config()->set('pipeline.scoring.consensus_saturation', 3);
+
+        [$cluster, $item] = $this->makeClusterWithItem(importance: 5);
+
+        $mcpTag = Tag::where('slug', 'mcp')->first();
+        $cluster->tags()->attach($mcpTag->id);
+        $cluster->update(['novelty_score' => 1.0, 'consensus_count' => 1]);
+
+        $this->service->updateScore($cluster);
+        $cluster->refresh();
+
+        // consensus = 1/3, tutte le altre componenti al massimo:
+        // total = w_consensus * (1/3) + w_novelty + w_importance + w_topic_match
+        $expected = (float) config('pipeline.scoring.weight_consensus') * (1 / 3)
+            + (float) config('pipeline.scoring.weight_novelty')
+            + (float) config('pipeline.scoring.weight_importance')
+            + (float) config('pipeline.scoring.weight_topic_match');
+        $this->assertEqualsWithDelta($expected, $cluster->total_score, 0.001);
+    }
+
     public function test_uses_fallback_3_for_null_importance(): void
     {
         [$cluster, $item] = $this->makeClusterWithItem(importance: null);
