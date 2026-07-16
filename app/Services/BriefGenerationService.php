@@ -101,8 +101,10 @@ class BriefGenerationService
     {
         $prompt = $this->buildPrompt($dossier, $documents);
 
-        $raw  = $this->llm->complete($prompt, maxTokens: 2048);
-        $data = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
+        $maxTokens = max(1024, (int) config('pipeline.briefs.max_tokens', 4096));
+
+        $raw  = $this->llm->complete($prompt, maxTokens: $maxTokens);
+        $data = json_decode($this->stripFences($raw), associative: true, flags: JSON_THROW_ON_ERROR);
 
         $breakdown = $dossier->score_breakdown;
 
@@ -197,5 +199,21 @@ class BriefGenerationService
         - "suggested_format" vale "skip" se il materiale non giustifica un contenuto
         - Rispondi con SOLO JSON valido, nessun markdown, nessun testo extra
         PROMPT;
+    }
+
+    /**
+     * Il prompt chiede solo JSON, ma i modelli a volte incorniciano comunque
+     * la risposta in un fence markdown: qui si tollera senza indebolire il
+     * parsing strict (un JSON troncato o malformato continua a lanciare).
+     */
+    private function stripFences(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $raw, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $raw;
     }
 }

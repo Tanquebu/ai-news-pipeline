@@ -64,6 +64,11 @@ return [
         // recenti, nella finestra di scoring) entrano nel prompt di sintesi
         // e nelle fonti citabili del brief.
         'top_documents' => (int) env('BRIEFS_TOP_DOCUMENTS', 8),
+
+        // Budget di output della sintesi: il payload del brief (claim con
+        // fonti, controargomenti, angoli) è molto più ricco della synthesis
+        // dei cluster — 2048 token lo troncavano producendo JSON invalido.
+        'max_tokens' => (int) env('BRIEFS_MAX_TOKENS', 4096),
     ],
 
     'cluster' => [
