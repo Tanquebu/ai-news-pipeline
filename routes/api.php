@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\BriefController;
 use App\Http\Controllers\Api\ClusterController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DossierController;
@@ -20,6 +21,9 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::post('/clusters/{cluster}/generate/article', [ClusterController::class, 'generateArticle']);
 
     Route::get('/dossiers', [DossierController::class, 'index']);
+
+    Route::get('/briefs', [BriefController::class, 'index']);
+    Route::get('/briefs/{brief}', [BriefController::class, 'show'])->whereNumber('brief');
 
     Route::post('/documents/ingest', [DocumentController::class, 'ingest']);
     Route::get('/documents/{document}', [DocumentController::class, 'show'])->whereNumber('document');

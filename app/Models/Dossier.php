@@ -8,6 +8,7 @@ use Database\Factories\DossierFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Dossier extends Model
 {
@@ -49,5 +50,10 @@ class Dossier extends Model
         return $this->belongsToMany(Document::class)
             ->withPivot('similarity')
             ->withTimestamps();
+    }
+
+    public function briefs(): HasMany
+    {
+        return $this->hasMany(Brief::class);
     }
 }

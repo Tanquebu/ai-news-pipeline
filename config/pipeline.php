@@ -54,6 +54,18 @@ return [
         ],
     ],
 
+    'briefs' => [
+        // Cap per run di briefs:generate, dalla roadmap v2 (max 3-5 brief a
+        // settimana): limita il costo di sintesi e il rumore editoriale.
+        // Override puntuale con --limit.
+        'max_per_run' => (int) env('BRIEFS_MAX_PER_RUN', 3),
+
+        // Quanti document per dossier (i più affini al centroide, poi i più
+        // recenti, nella finestra di scoring) entrano nel prompt di sintesi
+        // e nelle fonti citabili del brief.
+        'top_documents' => (int) env('BRIEFS_TOP_DOCUMENTS', 8),
+    ],
+
     'cluster' => [
         'feed_window_days'   => (int) env('CLUSTER_FEED_WINDOW_DAYS', 14),
         'archive_after_days' => (int) env('CLUSTER_ARCHIVE_AFTER_DAYS', 14),
