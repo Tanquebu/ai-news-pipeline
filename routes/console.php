@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('clusters:archive')->daily();
 Schedule::command('dossiers:consolidate')->dailyAt('03:30');
+// Dopo il consolidamento: score e candidatura calcolati sui membri aggiornati.
+Schedule::command('dossiers:score')->dailyAt('03:45');

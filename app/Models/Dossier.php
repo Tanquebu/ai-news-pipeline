@@ -19,6 +19,10 @@ class Dossier extends Model
         'slug',
         'description',
         'document_count',
+        'brief_score',
+        'score_breakdown',
+        'is_brief_candidate',
+        'scored_at',
     ];
 
     /**
@@ -32,7 +36,11 @@ class Dossier extends Model
     protected function casts(): array
     {
         return [
-            'document_count' => 'integer',
+            'document_count'     => 'integer',
+            'brief_score'        => 'float',
+            'score_breakdown'    => 'array',
+            'is_brief_candidate' => 'boolean',
+            'scored_at'          => 'datetime',
         ];
     }
 

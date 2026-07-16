@@ -21,6 +21,37 @@ return [
         // (0.85, near-duplicate): qui si cerca affinità tematica, non la
         // stessa notizia. Da tarare sul corpus reale via env.
         'similarity_threshold' => (float) env('DOSSIER_SIMILARITY_THRESHOLD', 0.45),
+
+        // Scoring spiegabile dei dossier per la candidatura ai brief
+        // settimanali (DossierScoringService, comando dossiers:score).
+        'scoring' => [
+            // Finestra di attività: volume e diversità fonti contano solo i
+            // document ingestati (created_at) negli ultimi N giorni.
+            'window_days' => (int) env('DOSSIER_SCORING_WINDOW_DAYS', 30),
+
+            // Saturazione del volume: oltre questa soglia di document nella
+            // finestra la componente vale 1.0. Evita che un dossier
+            // sbilanciato (catch-all) domini linearmente lo score.
+            'volume_saturation' => (int) env('DOSSIER_SCORING_VOLUME_SATURATION', 10),
+
+            // Saturazione della diversità fonti: N fonti distinte → 1.0.
+            'diversity_saturation' => (int) env('DOSSIER_SCORING_DIVERSITY_SATURATION', 4),
+
+            // Recency con decadimento esponenziale: la componente vale 0.5
+            // quando l'ultimo document risale a "half_life" giorni fa.
+            'recency_half_life_days' => (float) env('DOSSIER_SCORING_RECENCY_HALF_LIFE_DAYS', 7),
+
+            // Pesi delle componenti (somma attesa 1.0, non forzata).
+            'weight_volume'    => (float) env('DOSSIER_SCORING_WEIGHT_VOLUME', 0.35),
+            'weight_diversity' => (float) env('DOSSIER_SCORING_WEIGHT_DIVERSITY', 0.25),
+            'weight_recency'   => (float) env('DOSSIER_SCORING_WEIGHT_RECENCY', 0.25),
+            'weight_cohesion'  => (float) env('DOSSIER_SCORING_WEIGHT_COHESION', 0.15),
+
+            // Criteri minimi di candidatura a brief, valutati sulla finestra:
+            // almeno N document e almeno M fonti distinte (campo source).
+            'candidate_min_documents' => (int) env('DOSSIER_CANDIDATE_MIN_DOCUMENTS', 3),
+            'candidate_min_sources'   => (int) env('DOSSIER_CANDIDATE_MIN_SOURCES', 2),
+        ],
     ],
 
     'cluster' => [
