@@ -17,7 +17,11 @@ class ReportController extends Controller
 {
     public function index(): JsonResponse
     {
-        $reports = Report::withCount('newsItems')
+        $reports = Report::withCount([
+            'newsItems',
+            'newsItems as processed_items_count' => fn ($query) => $query
+                ->whereHas('cluster', fn ($cluster) => $cluster->whereNotNull('total_score')),
+        ])
             ->orderByDesc('report_date')
             ->orderByDesc('ingested_at')
             ->paginate(50);

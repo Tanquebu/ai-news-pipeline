@@ -267,6 +267,23 @@ function ReportDetailModal({ reportId, onClose }) {
     );
 }
 
+function ProcessingBadge({ total, processed }) {
+    if (total === 0) {
+        return <span className="text-xs bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded">Nessuna notizia</span>;
+    }
+    if (processed === 0) {
+        return <span className="text-xs bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded">In attesa</span>;
+    }
+    if (processed < total) {
+        return (
+            <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">
+                In corso · {processed}/{total}
+            </span>
+        );
+    }
+    return <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">Completato</span>;
+}
+
 export default function ReportsList() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -319,7 +336,10 @@ export default function ReportsList() {
                         onClick={() => setDetailId(r.id)}
                         className="bg-white border rounded-lg p-4 shadow-sm flex justify-between items-center gap-4 cursor-pointer hover:bg-neutral-50">
                         <div>
-                            <p className="font-medium">{r.report_date}</p>
+                            <p className="font-medium flex items-center gap-2">
+                                {r.report_date}
+                                <ProcessingBadge total={r.news_items_count} processed={r.processed_items_count} />
+                            </p>
                             <p className="text-sm text-neutral-500 mt-0.5">
                                 <span className="bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded text-xs mr-1">
                                     {r.source_ai}

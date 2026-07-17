@@ -86,6 +86,23 @@ class ReportApiTest extends TestCase
             ->assertJsonPath('data.1.news_items_count', 0);
     }
 
+    public function test_index_reports_processed_items_count_by_cluster_synthesis(): void
+    {
+        $processedCluster   = $this->makeCluster(['total_score' => 0.8]);
+        $unprocessedCluster = $this->makeCluster(['total_score' => null]);
+
+        $report = $this->makeReport();
+        $this->makeNewsItem($report, ['cluster_id' => $processedCluster->id]);
+        $this->makeNewsItem($report, ['cluster_id' => $unprocessedCluster->id]);
+        $this->makeNewsItem($report, ['cluster_id' => null]);
+
+        $response = $this->authed()->getJson('/api/reports');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.news_items_count', 3)
+            ->assertJsonPath('data.0.processed_items_count', 1);
+    }
+
     public function test_unauthenticated_request_is_rejected(): void
     {
         $report = $this->makeReport();
