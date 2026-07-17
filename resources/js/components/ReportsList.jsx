@@ -41,6 +41,7 @@ function PromptBox() {
 
 function IngestModal({ onClose, onSuccess }) {
     const [generators, setGenerators] = useState([]);
+    const [format, setFormat] = useState('object');
     const [sourceAi, setSourceAi] = useState('');
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [itemsJson, setItemsJson] = useState('');
@@ -57,10 +58,22 @@ function IngestModal({ onClose, onSuccess }) {
         setError(null);
         setSuccess(null);
 
-        let items;
+        let payload;
         try {
-            items = JSON.parse(itemsJson);
-            if (!Array.isArray(items)) throw new Error('deve essere un array JSON');
+            const parsed = JSON.parse(itemsJson);
+
+            if (format === 'object') {
+                if (Array.isArray(parsed) || typeof parsed !== 'object' || parsed === null) {
+                    throw new Error('deve essere un oggetto JSON con report_date, source_ai e items');
+                }
+                if (!parsed.source_ai || !parsed.report_date || !Array.isArray(parsed.items)) {
+                    throw new Error('mancano report_date, source_ai o items nell\'oggetto');
+                }
+                payload = { source_ai: parsed.source_ai, report_date: parsed.report_date, items: parsed.items };
+            } else {
+                if (!Array.isArray(parsed)) throw new Error('deve essere un array JSON');
+                payload = { source_ai: sourceAi, report_date: reportDate, items: parsed };
+            }
         } catch (err) {
             setError(`JSON non valido: ${err.message}`);
             return;
@@ -68,7 +81,7 @@ function IngestModal({ onClose, onSuccess }) {
 
         setSubmitting(true);
         try {
-            const res = await api.ingestReport({ source_ai: sourceAi, report_date: reportDate, items });
+            const res = await api.ingestReport(payload);
             const msg = res.status === 'duplicate'
                 ? 'Report già presente — duplicato ignorato.'
                 : 'Report importato con successo.';
@@ -90,41 +103,58 @@ function IngestModal({ onClose, onSuccess }) {
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
                     <PromptBox />
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Sorgente AI</label>
-                            <input
-                                list="generators-list"
-                                value={sourceAi}
-                                onChange={(e) => setSourceAi(e.target.value)}
-                                required
-                                placeholder="es. claude-opus-4-7"
-                                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <datalist id="generators-list">
-                                {generators.map((g) => <option key={g} value={g} />)}
-                            </datalist>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Data report</label>
-                            <input
-                                type="date"
-                                value={reportDate}
-                                onChange={(e) => setReportDate(e.target.value)}
-                                required
-                                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">Formato JSON incollato</label>
+                        <select
+                            value={format}
+                            onChange={(e) => setFormat(e.target.value)}
+                            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="object">Oggetto completo — con report_date e source_ai (output del prompt)</option>
+                            <option value="array">Solo array items — sorgente e data inserite a mano</option>
+                        </select>
                     </div>
+                    {format === 'array' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-1">Sorgente AI</label>
+                                <input
+                                    list="generators-list"
+                                    value={sourceAi}
+                                    onChange={(e) => setSourceAi(e.target.value)}
+                                    required
+                                    placeholder="es. claude-opus-4-7"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <datalist id="generators-list">
+                                    {generators.map((g) => <option key={g} value={g} />)}
+                                </datalist>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-1">Data report</label>
+                                <input
+                                    type="date"
+                                    value={reportDate}
+                                    onChange={(e) => setReportDate(e.target.value)}
+                                    required
+                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1">
-                            Items <span className="font-normal text-neutral-400">(array JSON)</span>
+                            {format === 'object'
+                                ? <>JSON report <span className="font-normal text-neutral-400">(oggetto con report_date, source_ai, items)</span></>
+                                : <>Items <span className="font-normal text-neutral-400">(array JSON)</span></>}
                         </label>
                         <textarea
                             value={itemsJson}
                             onChange={(e) => setItemsJson(e.target.value)}
                             required
-                            placeholder={'[\n  {\n    "section": "strategic",\n    "title": "...",\n    "summary": "...",\n    "entities": [],\n    "event_date": null,\n    "sources": [],\n    "importance_self_rated": null,\n    "raw_tags": []\n  }\n]'}
+                            placeholder={format === 'object'
+                                ? '{\n  "report_date": "2026-07-17",\n  "source_ai": "claude-opus-4-7",\n  "items": [\n    {\n      "section": "strategic",\n      "title": "...",\n      "summary": "...",\n      "entities": [],\n      "event_date": null,\n      "sources": [],\n      "importance_self_rated": null,\n      "raw_tags": []\n    }\n  ]\n}'
+                                : '[\n  {\n    "section": "strategic",\n    "title": "...",\n    "summary": "...",\n    "entities": [],\n    "event_date": null,\n    "sources": [],\n    "importance_self_rated": null,\n    "raw_tags": []\n  }\n]'}
                             className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 h-64 resize-y"
                         />
                     </div>
