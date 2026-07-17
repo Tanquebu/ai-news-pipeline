@@ -91,7 +91,31 @@ class ReportApiTest extends TestCase
         $report = $this->makeReport();
 
         $this->getJson('/api/reports')->assertUnauthorized();
+        $this->getJson("/api/reports/{$report->id}")->assertUnauthorized();
         $this->deleteJson("/api/reports/{$report->id}")->assertUnauthorized();
+    }
+
+    public function test_show_returns_report_with_news_items(): void
+    {
+        $report = $this->makeReport();
+        $item   = $this->makeNewsItem($report, [
+            'title'   => 'Item one',
+            'summary' => 'Summary one.',
+        ]);
+
+        $response = $this->authed()->getJson("/api/reports/{$report->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('id', $report->id)
+            ->assertJsonPath('news_items.0.id', $item->id)
+            ->assertJsonPath('news_items.0.title', 'Item one')
+            ->assertJsonPath('news_items.0.summary', 'Summary one.');
+    }
+
+    public function test_show_returns_404_for_nonexistent_report(): void
+    {
+        $this->authed()->getJson('/api/reports/99999')
+            ->assertNotFound();
     }
 
     public function test_destroy_deletes_report_and_cascades_to_news_items(): void

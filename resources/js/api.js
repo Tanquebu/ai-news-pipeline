@@ -36,6 +36,8 @@ export const api = {
 
     getReports: () => request('GET', '/reports'),
 
+    getReport: (id) => request('GET', `/reports/${id}`),
+
     getGenerators: () => request('GET', '/reports/generators'),
 
     ingestReport: (data) => request('POST', '/reports/ingest', data),

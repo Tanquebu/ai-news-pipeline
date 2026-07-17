@@ -25,6 +25,13 @@ class ReportController extends Controller
         return response()->json($reports);
     }
 
+    public function show(Report $report): JsonResponse
+    {
+        $report->load(['newsItems.sources', 'newsItems.tags']);
+
+        return response()->json($report);
+    }
+
     public function generators(): JsonResponse
     {
         $generators = Report::select('source_ai')

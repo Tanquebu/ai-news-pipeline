@@ -117,11 +117,64 @@ function IngestModal({ onClose, onSuccess }) {
     );
 }
 
+function ReportDetailModal({ reportId, onClose }) {
+    const [report, setReport] = useState(null);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        api.getReport(reportId)
+            .then(setReport)
+            .catch((err) => setError(err.message));
+    }, [reportId]);
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div className="p-6 border-b flex justify-between items-center shrink-0">
+                    <h2 className="text-lg font-semibold">
+                        Report {report ? `— ${report.source_ai} (${report.report_date})` : ''}
+                    </h2>
+                    <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">&times;</button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1">
+                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    {!report && !error && <p className="text-neutral-500">Caricamento…</p>}
+                    {report && report.news_items?.length === 0 && (
+                        <p className="text-neutral-500">Nessuna notizia in questo report.</p>
+                    )}
+                    {report && report.news_items?.length > 0 && (
+                        <ul className="space-y-3">
+                            {report.news_items.map((item) => (
+                                <li key={item.id} className="bg-white border rounded p-3 text-sm">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <p className="font-medium">[{item.section}] {item.title}</p>
+                                    </div>
+                                    <p className="text-neutral-600 mt-1">{item.summary}</p>
+                                    {item.entities?.length > 0 && (
+                                        <div className="flex gap-1 mt-2 flex-wrap">
+                                            {item.entities.map((e, i) => (
+                                                <span key={i} className="text-xs bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                                                    {e}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ReportsList() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(null);
     const [showIngest, setShowIngest] = useState(false);
+    const [detailId, setDetailId] = useState(null);
 
     const load = () => {
         setLoading(true);
@@ -132,7 +185,8 @@ export default function ReportsList() {
 
     useEffect(load, []);
 
-    const handleDelete = (report) => {
+    const handleDelete = (report, e) => {
+        e.stopPropagation();
         if (!window.confirm(`Eliminare il report "${report.source_ai}" del ${report.report_date}?\n\nTutte le notizie associate verranno rimosse.`)) {
             return;
         }
@@ -164,7 +218,8 @@ export default function ReportsList() {
             <ul className="space-y-2">
                 {reports.map((r) => (
                     <li key={r.id}
-                        className="bg-white border rounded-lg p-4 shadow-sm flex justify-between items-center gap-4">
+                        onClick={() => setDetailId(r.id)}
+                        className="bg-white border rounded-lg p-4 shadow-sm flex justify-between items-center gap-4 cursor-pointer hover:bg-neutral-50">
                         <div>
                             <p className="font-medium">{r.report_date}</p>
                             <p className="text-sm text-neutral-500 mt-0.5">
@@ -177,7 +232,7 @@ export default function ReportsList() {
                             </p>
                         </div>
                         <button
-                            onClick={() => handleDelete(r)}
+                            onClick={(e) => handleDelete(r, e)}
                             disabled={deleting === r.id}
                             className="text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 shrink-0"
                         >
@@ -191,6 +246,13 @@ export default function ReportsList() {
                 <IngestModal
                     onClose={() => setShowIngest(false)}
                     onSuccess={load}
+                />
+            )}
+
+            {detailId && (
+                <ReportDetailModal
+                    reportId={detailId}
+                    onClose={() => setDetailId(null)}
                 />
             )}
         </div>

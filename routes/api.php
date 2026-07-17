@@ -33,6 +33,7 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
 
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/generators', [ReportController::class, 'generators']);
+    Route::get('/reports/{report}', [ReportController::class, 'show']);
     Route::post('/reports/ingest', [ReportController::class, 'ingest']);
     Route::delete('/reports/{report}', [ReportController::class, 'destroy']);
 
