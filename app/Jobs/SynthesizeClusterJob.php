@@ -9,8 +9,10 @@ use App\Models\Cluster;
 use App\Models\Tag;
 use App\Models\TagProposal;
 use App\Services\ScoringService;
+use App\Support\LlmJson;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class SynthesizeClusterJob implements ShouldQueue
 {
@@ -34,7 +36,7 @@ class SynthesizeClusterJob implements ShouldQueue
         $prompt      = $this->buildPrompt($cluster, $allTagSlugs);
 
         $raw  = $llm->complete($prompt, maxTokens: 2048);
-        $data = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
+        $data = LlmJson::decode($raw);
 
         $cluster->update([
             'canonical_title'   => $data['canonical_title'],
@@ -67,6 +69,19 @@ class SynthesizeClusterJob implements ShouldQueue
 
         $cluster->load(['newsItems', 'tags']);
         $scoring->updateScore($cluster);
+    }
+
+    /**
+     * Chiamato una sola volta da Laravel dopo l'ultimo tentativo fallito
+     * (non ad ogni retry): qui registriamo il fallimento definitivo senza
+     * duplicare il rumore già prodotto dai tentativi intermedi.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('SynthesizeClusterJob fallito definitivamente', [
+            'cluster_id' => $this->clusterId,
+            'exception'  => $exception->getMessage(),
+        ]);
     }
 
     private function buildPrompt(Cluster $cluster, array $allTagSlugs): string

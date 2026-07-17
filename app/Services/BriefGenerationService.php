@@ -8,6 +8,7 @@ use App\Contracts\LLMClient;
 use App\Models\Brief;
 use App\Models\Document;
 use App\Models\Dossier;
+use App\Support\LlmJson;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -104,7 +105,7 @@ class BriefGenerationService
         $maxTokens = max(1024, (int) config('pipeline.briefs.max_tokens', 4096));
 
         $raw  = $this->llm->complete($prompt, maxTokens: $maxTokens);
-        $data = json_decode($this->stripFences($raw), associative: true, flags: JSON_THROW_ON_ERROR);
+        $data = LlmJson::decode($raw);
 
         $breakdown = $dossier->score_breakdown;
 
@@ -199,21 +200,5 @@ class BriefGenerationService
         - "suggested_format" vale "skip" se il materiale non giustifica un contenuto
         - Rispondi con SOLO JSON valido, nessun markdown, nessun testo extra
         PROMPT;
-    }
-
-    /**
-     * Il prompt chiede solo JSON, ma i modelli a volte incorniciano comunque
-     * la risposta in un fence markdown: qui si tollera senza indebolire il
-     * parsing strict (un JSON troncato o malformato continua a lanciare).
-     */
-    private function stripFences(string $raw): string
-    {
-        $raw = trim($raw);
-
-        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $raw, $matches) === 1) {
-            return $matches[1];
-        }
-
-        return $raw;
     }
 }

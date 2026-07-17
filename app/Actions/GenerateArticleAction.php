@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Contracts\LLMClient;
 use App\Models\Cluster;
 use App\Models\Publication;
+use App\Support\LlmJson;
 
 class GenerateArticleAction
 {
@@ -36,7 +37,7 @@ class GenerateArticleAction
 
         $prompt = $this->buildPrompt($cluster);
         $raw    = $this->llm->complete($prompt, maxTokens: 2048);
-        $data   = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
+        $data   = LlmJson::decode($raw);
 
         return Publication::create([
             'cluster_id'         => $cluster->id,

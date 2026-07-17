@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Contracts\LLMClient;
 use App\Models\Cluster;
 use App\Models\Publication;
+use App\Support\LlmJson;
 
 class GenerateLinkedInPostsAction
 {
@@ -19,7 +20,7 @@ class GenerateLinkedInPostsAction
 
         $prompt = $this->buildPrompt($cluster);
         $raw    = $this->llm->complete($prompt, maxTokens: 1024);
-        $data   = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
+        $data   = LlmJson::decode($raw);
 
         $now   = now();
         $kinds = [
