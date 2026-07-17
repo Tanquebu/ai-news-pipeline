@@ -108,6 +108,25 @@ Genera bozze di post LinkedIn per un cluster tramite il generatore LLM della pip
 | `cluster_id` | number | ID del cluster |
 | `kind` | `short` \| `medium` \| `opinion` (opz.) | Variante specifica; ometti per ricevere tutte e tre |
 
+### `search_knowledge`
+
+Ricerca semantica sulla knowledge base documentale (ricerca ibrida full-text + vettoriale, fusione RRF). Restituisce chunk con titolo, URL, snippet, score e riferimenti documento/chunk per l'approfondimento con `get_document`.
+
+| Parametro | Tipo | Descrizione |
+|---|---|---|
+| `query` | string | Query di ricerca in linguaggio naturale |
+| `limit` | number (opz.) | Numero massimo di risultati |
+| `doc_type` | `article` \| `pdf` \| `note` (opz.) | Filtra per tipo di documento |
+| `source` | string (opz.) | Filtra per fonte del documento |
+
+### `get_document`
+
+Restituisce un documento della knowledge base per ID: metadati (titolo, fonte, URL, tipo, sommario) e contenuto completo dei chunk in ordine.
+
+| Parametro | Tipo | Descrizione |
+|---|---|---|
+| `document_id` | number | ID del documento (come restituito da `search_knowledge`) |
+
 ## Workflow tipico
 
 ```
@@ -115,4 +134,11 @@ Genera bozze di post LinkedIn per un cluster tramite il generatore LLM della pip
 2. get_cluster(id=<id>)                → leggi i dettagli e le fonti
 3. draft_linkedin_post(cluster_id=<id>) → genera le bozze
 4. (approva via UI o API PATCH /api/publications/{id})
+```
+
+Per la knowledge base:
+
+```
+1. search_knowledge(query="...")        → trova i chunk pertinenti con fonte
+2. get_document(document_id=<id>)       → leggi il documento completo
 ```

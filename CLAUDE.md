@@ -4,7 +4,9 @@
 
 Backend Laravel per raccogliere, deduplicare, taggare e curare report quotidiani sull'AI prodotti da più LLM (Claude, GPT, Gemini, ecc.) con un prompt unificato. Il sistema elabora i report grezzi in cluster di notizie con score di rilevanza, e genera bozze di contenuti divulgativi (post LinkedIn, articoli) per pubblicazione previa review umana.
 
-**Fonte di verità funzionale e architetturale: `SPEC.md`.** Questo file copre solo convenzioni operative e regole di lavoro.
+Sulla stessa base vive il **dominio documentale/RAG**: ingest idempotente di documenti da sistemi sorgente esterni (`POST /api/documents/ingest`), chunking + embedding, ricerca ibrida FTS+pgvector (`GET /api/rag/search`), dossier tematici persistenti con scoring spiegabile e brief editoriali settimanali con delivery via webhook configurabile. Vedi `CODEBASE-OVERVIEW.md` per la mappa dei componenti.
+
+**Fonte di verità funzionale e architetturale: `SPEC.md`** (che copre la pipeline news; il dominio documentale/RAG è documentato in `CODEBASE-OVERVIEW.md`). Questo file copre solo convenzioni operative e regole di lavoro.
 
 UI: seguire `docs/ui-direction.md`.
 
@@ -17,6 +19,7 @@ UI: seguire `docs/ui-direction.md`.
 - Anthropic API (Claude) per synthesis, tagging, generazione contenuti
 - OpenAI API (`text-embedding-3-small`) come driver embedding di default; Voyage AI come driver alternativo
 - React + Vite + Tailwind per la UI di review (fase 4, non urgente)
+- MCP server TypeScript in `mcp-server/` (stdio; build con `npm run build` nella cartella)
 
 ## Comandi comuni
 
@@ -28,12 +31,24 @@ UI: seguire `docs/ui-direction.md`.
 ./vendor/bin/sail artisan migrate
 ./vendor/bin/sail artisan migrate:fresh --seed
 
-# Pipeline
+# Pipeline news
 ./vendor/bin/sail artisan reports:ingest                      # usa storage/reports/inbox (ricorsivo), sposta in storage/reports/ingested
 ./vendor/bin/sail artisan reports:ingest --path=<path>        # path custom (file o directory), sposta in storage/reports/ingested
 ./vendor/bin/sail artisan reports:ingest --path=<p> --move=<d> # path e destinazione custom
 ./vendor/bin/sail artisan reports:reprocess <report_id>
 ./vendor/bin/sail artisan clusters:rescore
+./vendor/bin/sail artisan clusters:archive --dry-run          # archivia cluster non aggiornati (CLUSTER_ARCHIVE_AFTER_DAYS)
+
+# Dossier e brief (dominio documentale/RAG)
+./vendor/bin/sail artisan dossiers:seed                       # dossier tematici iniziali (idempotente)
+./vendor/bin/sail artisan dossiers:consolidate --dry-run      # bootstrap/ricalcolo centroidi + riassegnazione orfani
+./vendor/bin/sail artisan dossiers:score --dry-run            # scoring spiegabile + candidatura a brief
+./vendor/bin/sail artisan briefs:generate --dry-run           # brief settimanali dai dossier candidati (--limit=N)
+
+# Scheduler (routes/console.php): clusters:archive daily,
+# dossiers:consolidate 03:30, dossiers:score 03:45, briefs:generate dom 05:00.
+# In produzione serve un cron che esegua `artisan schedule:run` ogni minuto.
+./vendor/bin/sail artisan schedule:list
 
 # Worker (vedi sezione "Coda job" sotto)
 ./vendor/bin/sail artisan queue:work --stop-when-empty   # locale/test

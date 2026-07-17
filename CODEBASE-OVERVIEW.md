@@ -14,6 +14,7 @@ Operazioni atomiche a singolo metodo pubblico `execute()`. Orchestrano più pass
 | `App\Actions\DeleteReportAction` | Elimina un `Report` in transazione, riconcilia i cluster orfani (elimina quelli vuoti con le loro draft, aggiorna `consensus_count` sugli altri) | Chiamata da `ReportController@destroy`; tocca `Cluster`, `Publication` |
 | `App\Actions\GenerateLinkedInPostsAction` | Chiama Claude via `LLMClient`, genera 3 varianti post LinkedIn (short/medium/opinion), crea 3 record `Publication` in stato `draft` | Chiamata da `ClusterController@generateLinkedIn`; dipende da `LLMClient` |
 | `App\Actions\GenerateArticleAction` | Chiama Claude via `LLMClient`, genera un articolo in markdown, crea un record `Publication` (kind=`article`, status=`draft`); richiede ≥3 items e ≥2 entità nel cluster | Chiamata da `ClusterController@generateArticle`; dipende da `LLMClient` |
+| `App\Actions\IngestDocumentAction` | Ingest idempotente di un documento da un sistema sorgente esterno: valida il payload, salva il `full_text` content-addressable su storage (`rag/raw/<sha256[0:2]>/<sha256>.txt`), crea/aggiorna `Document` + `IngestionEvent`, con `category=news` crea anche il `NewsItem` collegato, dispatcha `ChunkDocumentJob` (e `EmbedNewsItemJob` per le news). Chiave idempotente `(source_system, source_record_id, content_hash)` UNIQUE su `ingestion_events`; esiti `ingested` / `updated` / `duplicate`, race-safe | Chiamata da `DocumentController@ingest`; dispatcha verso `ChunkDocumentJob` |
 
 ---
 
@@ -28,6 +29,11 @@ Logica di dominio riusabile con dipendenze esterne iniettate. Ogni service imple
 | `App\Services\ScoringService` | Calcola e persiste `total_score` e le metriche intermedie (`importance_avg`, `topic_match_score`) su un cluster. | Usata da `SynthesizeClusterJob` e `RescoreClustersCommand` |
 | `App\Services\Embedding\OpenAIEmbeddingDriver` | Chiama `POST /v1/embeddings` di OpenAI con `text-embedding-3-small`. Implementa `EmbeddingDriver`. | Implementa `App\Contracts\EmbeddingDriver`; istanziata da `AppServiceProvider` |
 | `App\Services\Embedding\VoyageEmbeddingDriver` | Chiama l'API Voyage AI. Driver alternativo al posto di OpenAI. Implementa `EmbeddingDriver`. | Implementa `App\Contracts\EmbeddingDriver`; istanziata da `AppServiceProvider` |
+| `App\Services\RagSearchService` | Ricerca ibrida sui `document_chunks`: full-text PostgreSQL (`'simple'`) + similarità pgvector, fusione dei due ranking via Reciprocal Rank Fusion (RRF, k=60), pool di candidati ≥50, filtri `doc_type`/`source`, snippet 300 char. Mai embedding nei risultati. | Usata da `RagSearchController@search`; dipende da `EmbeddingService` |
+| `App\Services\DossierAssignmentService` | Assegna un document al dossier più affine per similarità coseno documento↔centroide (soglia `DOSSIER_SIMILARITY_THRESHOLD`, default 0.45) e ricalcola i centroidi dai membri. | Usata da `AssignDocumentToDossierJob` e `ConsolidateDossiersCommand` |
+| `App\Services\DossierScoringService` | Scoring spiegabile dei dossier (volume, diversità fonti, recency con half-life, coesione; pesi via env) e candidatura a brief (≥N document, ≥M fonti distinte nella finestra). Persiste score, breakdown e `is_brief_candidate`. | Usata da `ScoreDossiersCommand` |
+| `App\Services\BriefGenerationService` | Genera i brief settimanali dai dossier candidati: seleziona i top document del dossier, chiama il LLM (budget `BRIEFS_MAX_TOKENS`), crea record `Brief` (status `draft`). Idempotente: max 1 brief per dossier per settimana (unique `dossier_id`+`period_start`). | Usata da `GenerateBriefsCommand`; dipende da `LLMClient` |
+| `App\Services\BriefWebhookNotifier` | Se `BRIEFS_WEBHOOK_URL` è configurato, POST-a un riepilogo JSON dei brief appena generati. Fallimento mai bloccante per la generazione. | Usata da `GenerateBriefsCommand` |
 
 ---
 
@@ -40,6 +46,9 @@ Job asincroni accodati su Laravel Queue (driver `database` o `redis`). Formano u
 | `App\Jobs\EmbedNewsItemJob` | Genera l'embedding vettoriale di un `NewsItem` via `EmbeddingService`, lo persiste come `vector(1536)` in `news_items.embedding`, dispatcha `ClusterNewsItemJob` | Dispatchata da `IngestReportAction` e `ReprocessReportCommand`; usa `EmbeddingService` |
 | `App\Jobs\ClusterNewsItemJob` | Cerca il cluster più simile per similarità coseno via pgvector (soglia 0.85, finestra 72h). Se trovato: associa l'item e aggiorna `consensus_count`. Altrimenti crea un nuovo cluster. Dispatcha `SynthesizeClusterJob`. | Dispatchata da `EmbedNewsItemJob`; scrive su `Cluster`, `NewsItem` |
 | `App\Jobs\SynthesizeClusterJob` | Invia tutti i newsitem del cluster a Claude, ottiene `canonical_title`, `canonical_summary`, `tags`, `tag_proposals`, `novelty_score`. Sincronizza tag, crea `TagProposal` per tag fuori tassonomia, chiama `ScoringService::updateScore()`. 8 tentativi con backoff progressivo (1m→4h) per gestire 429/529. | Dispatchata da `ClusterNewsItemJob`; usa `LLMClient`, `ScoringService` |
+| `App\Jobs\ChunkDocumentJob` | Spezza il `full_text` raw di un `Document` in chunk (sliding window ~900 token stimati, overlap 150), li persiste come `DocumentChunk`, porta il document a `chunked`, dispatcha `EmbedDocumentChunksJob`. `afterCommit` nel costruttore: il dispatch avviene dentro la transazione di ingest. | Dispatchata da `IngestDocumentAction`; dispatcha `EmbedDocumentChunksJob` |
+| `App\Jobs\EmbedDocumentChunksJob` | Genera l'embedding `vector(1536)` per ogni chunk del document via `EmbeddingService`, porta il document a `embedded`, dispatcha `AssignDocumentToDossierJob`. | Dispatchata da `ChunkDocumentJob`; usa `EmbeddingService` |
+| `App\Jobs\AssignDocumentToDossierJob` | Assegnazione preliminare post-ingest del document al dossier più affine (via `DossierAssignmentService`); i document sotto soglia restano orfani fino al consolidamento notturno. | Dispatchata da `EmbedDocumentChunksJob`; usa `DossierAssignmentService` |
 
 ---
 
@@ -53,6 +62,13 @@ Comandi Artisan. Tutti thin: orchestrano, non implementano logica di dominio.
 | `App\Console\Commands\ReprocessReportCommand` | `reports:reprocess {report_id}` | Ridispatcha `EmbedNewsItemJob` per tutti i newsitem di un report (utile dopo cambio driver embedding) |
 | `App\Console\Commands\RescoreClustersCommand` | `clusters:rescore` | Itera tutti i cluster attivi via `cursor()` e chiama `ScoringService::updateScore()` su ognuno (utile dopo modifica dei pesi) |
 | `App\Console\Commands\ListClustersCommand` | `clusters:list [--top=10] [--since=]` | Mostra i cluster attivi ordinati per `total_score` in formato tabella; `--since` filtra su `last_seen_at` |
+| `App\Console\Commands\ArchiveClustersCommand` | `clusters:archive [--older-than=] [--dry-run]` | Archivia i cluster attivi con `last_seen_at` più vecchio della soglia (`CLUSTER_ARCHIVE_AFTER_DAYS`); schedulato daily |
+| `App\Console\Commands\SeedDossiersCommand` | `dossiers:seed` | Crea i dossier tematici iniziali (idempotente: slug esistenti non toccati); i centroidi partono NULL |
+| `App\Console\Commands\ConsolidateDossiersCommand` | `dossiers:consolidate [--dry-run]` | Bootstrap dei centroidi mancanti (embedding di nome+descrizione), ricalcolo centroidi dai membri, riassegnazione document orfani; schedulato 03:30 |
+| `App\Console\Commands\ScoreDossiersCommand` | `dossiers:score [--dry-run]` | Scoring spiegabile e candidatura a brief di tutti i dossier via `DossierScoringService`; schedulato 03:45 |
+| `App\Console\Commands\GenerateBriefsCommand` | `briefs:generate [--limit=] [--dry-run]` | Genera i brief settimanali dai dossier candidati (cap `BRIEFS_MAX_PER_RUN`, default 3) e notifica il webhook opzionale; schedulato domenica 05:00 |
+
+Lo scheduling vive in `routes/console.php` (Laravel scheduler): `clusters:archive` daily, `dossiers:consolidate` 03:30, `dossiers:score` 03:45, `briefs:generate` domenica 05:00.
 
 ---
 
@@ -63,13 +79,18 @@ Modelli Eloquent puri: relazioni, casts, scope. Nessuna business logic.
 | Modello | Tabella | Relazioni principali |
 |---|---|---|
 | `App\Models\Report` | `reports` | `hasMany NewsItem` |
-| `App\Models\NewsItem` | `news_items` | `belongsTo Report`, `belongsTo Cluster`, `hasMany NewsItemSource`, `belongsToMany Tag`, `belongsToMany Entity` |
+| `App\Models\NewsItem` | `news_items` | `belongsTo Report` (`report_id` nullable dal 2026-07: gli item nati da ingest documentale non hanno report), `belongsTo Cluster`, `hasMany NewsItemSource`, `belongsToMany Tag`, `belongsToMany Entity` |
 | `App\Models\NewsItemSource` | `news_item_sources` | `belongsTo NewsItem` |
 | `App\Models\Cluster` | `clusters` | `hasMany NewsItem`, `belongsToMany Tag`, `hasMany Publication` |
 | `App\Models\Tag` | `tags` | `belongsToMany NewsItem`, `belongsToMany Cluster` |
 | `App\Models\TagProposal` | `tag_proposals` | — |
 | `App\Models\Entity` | `entities` | `belongsToMany NewsItem` |
 | `App\Models\Publication` | `publications` | `belongsTo Cluster` |
+| `App\Models\Document` | `documents` | `hasMany DocumentChunk` (ordinati per `chunk_index`), `belongsToMany Dossier`; FK nullable `news_item_id`; status `pending→chunked→embedded` (o `failed`) |
+| `App\Models\DocumentChunk` | `document_chunks` | `belongsTo Document`; colonna `embedding vector(1536)` (`$hidden`: mai nei payload API) |
+| `App\Models\IngestionEvent` | `ingestion_events` | `belongsTo Document`; UNIQUE `(source_system, source_record_id, content_hash)` — registro di idempotenza dell'ingest |
+| `App\Models\Dossier` | `dossiers` | `belongsToMany Document`, `hasMany Brief`; centroide `vector(1536)` (`$hidden`), `brief_score` + breakdown + `is_brief_candidate` |
+| `App\Models\Brief` | `briefs` | `belongsTo Dossier`; `payload` JSON (tesi, claim con fonti, controargomenti, angoli), status `draft→approved→sent`, unique `(dossier_id, period_start)` |
 
 ---
 
@@ -79,10 +100,14 @@ Controller API REST. Tutti thin: validano input via Form Request, delegano a Act
 
 | Controller | Endpoint principali | Responsabilità |
 |---|---|---|
-| `App\Http\Controllers\Api\ClusterController` | `GET /api/clusters`, `GET /api/clusters/{id}`, `POST /api/clusters/{id}/generate/linkedin`, `POST /api/clusters/{id}/generate/article` | Feed cluster paginato con filtri (tag, score_min, since); dettaglio con items/publications; trigger generazione contenuti |
-| `App\Http\Controllers\Api\ReportController` | `GET /api/reports`, `DELETE /api/reports/{id}` | Lista report paginata; eliminazione con riconciliazione cluster |
+| `App\Http\Controllers\Api\ClusterController` | `GET /api/clusters`, `GET /api/clusters/{id}`, `POST /api/clusters/{id}/archive`, `POST /api/clusters/{id}/generate/linkedin`, `POST /api/clusters/{id}/generate/article` | Feed cluster paginato con filtri (tag, score_min, since); dettaglio con items/publications; archiviazione manuale; trigger generazione contenuti |
+| `App\Http\Controllers\Api\ReportController` | `GET /api/reports`, `GET /api/reports/generators`, `POST /api/reports/ingest`, `DELETE /api/reports/{id}` | Lista report paginata; ingest via API (form UI); eliminazione con riconciliazione cluster |
 | `App\Http\Controllers\Api\NewsItemController` | `GET /api/news-items` | Lista newsitem recenti con filtri (query full-text su title/summary, since, section) |
 | `App\Http\Controllers\Api\PublicationController` | `GET /api/publications`, `PATCH /api/publications/{id}`, `GET /api/publications/{id}/export` | Lista pubblicazioni; aggiornamento stato/contenuto; download markdown |
+| `App\Http\Controllers\Api\DocumentController` | `POST /api/documents/ingest`, `GET /api/documents/{id}` | Ingest documentale idempotente (202 + `ingestion_id`, esiti ingested/updated/duplicate); dettaglio documento con chunk in ordine (select esplicita: mai embedding nel payload) |
+| `App\Http\Controllers\Api\RagSearchController` | `GET /api/rag/search?q=&limit=&doc_type=&source=` | Ricerca ibrida FTS+pgvector via `RagSearchService`; risposta con query, count e results (fonte citabile per chunk) |
+| `App\Http\Controllers\Api\DossierController` | `GET /api/dossiers[?candidates_only=1]` | Lista dossier ordinati per `brief_score` con breakdown spiegabile e stato candidatura |
+| `App\Http\Controllers\Api\BriefController` | `GET /api/briefs[?status=]`, `GET /api/briefs/{id}`, `PATCH /api/briefs/{id}` | Lista/dettaglio brief; avanzamento stato solo in avanti di un passo (`draft→approved`, `approved→sent`) |
 
 Tutti gli endpoint sono protetti dal middleware `App\Http\Middleware\ApiTokenAuth` che verifica l'header `X-API-Token`.
 
@@ -182,6 +207,32 @@ App\Http\Controllers\Api\PublicationController::update()
   ▼
 Publication approvata — pronta per pubblicazione manuale
 ```
+
+### Flusso documentale (ingest → RAG → dossier → brief)
+
+Parallelo al flusso news, dal payload di un sistema sorgente esterno al brief settimanale:
+
+```
+POST /api/documents/ingest  {source_system, source_record_id, content_hash, title, full_text, category, ...}
+  │
+  ▼ App\Actions\IngestDocumentAction (transazione)
+  │  1. idempotenza su ingestion_events (UNIQUE tripla) → ingested | updated | duplicate
+  │  2. full_text → storage rag/raw/<sha256[0:2]>/<sha256>.txt (content-addressable)
+  │  3. category=news → NewsItem collegato → EmbedNewsItemJob (flusso cluster esistente)
+  │  4. ChunkDocumentJob::dispatch (afterCommit)
+  ▼
+ChunkDocumentJob (~900 token/chunk, overlap 150) → status chunked
+  ▼
+EmbedDocumentChunksJob (vector 1536d per chunk) → status embedded
+  ▼
+AssignDocumentToDossierJob (similarità coseno ↔ centroide, soglia 0.45)
+  │
+  ▼ notturno (scheduler): dossiers:consolidate (03:30) → dossiers:score (03:45)
+  ▼ domenica 05:00: briefs:generate → Brief (draft) → BriefWebhookNotifier (BRIEFS_WEBHOOK_URL)
+  ▼ consumer esterno: PATCH /api/briefs/{id} approved → sent
+```
+
+Interrogazione in ogni momento: `GET /api/rag/search` (ibrida FTS+pgvector, RRF) e `GET /api/documents/{id}`, o i tool MCP `search_knowledge`/`get_document`.
 
 ---
 
@@ -356,9 +407,19 @@ Endpoint: `GET /api/reports` (lista paginata con `news_items_count`), `DELETE /a
 
 ---
 
-### Fase 5 — MCP Server custom ❌ Non implementata (opzionale)
+### Fase 5 — MCP Server custom ✅ Completa
 
-Prevede un server MCP TypeScript separato con tool `search_news_items`, `get_cluster`, `list_pending_clusters`, `draft_linkedin_post`. Non esiste codice TypeScript nel repository.
+Server MCP TypeScript in `mcp-server/` (stdio, SDK ufficiale) con tool `search_news_items`, `get_cluster`, `list_pending_clusters`, `draft_linkedin_post` + i tool knowledge base `search_knowledge` e `get_document`. Config: `PIPELINE_API_URL` (base URL **senza** `/api`) e `PIPELINE_API_TOKEN`. Setup: `docs/mcp_server.md`.
+
+---
+
+### Dominio documentale / RAG (2026-07) ✅ Completo
+
+Classi principali: `App\Actions\IngestDocumentAction`, `App\Jobs\ChunkDocumentJob`, `App\Jobs\EmbedDocumentChunksJob`, `App\Jobs\AssignDocumentToDossierJob`, `App\Services\RagSearchService`, `App\Services\DossierAssignmentService`, `App\Services\DossierScoringService`, `App\Services\BriefGenerationService`, `App\Services\BriefWebhookNotifier`, controller `DocumentController`, `RagSearchController`, `DossierController`, `BriefController`.
+
+Comandi: `dossiers:seed`, `dossiers:consolidate`, `dossiers:score`, `briefs:generate` (+ `clusters:archive` per l'igiene del feed news).
+
+Migrations: `2026_07_15_000001..3` (documents, document_chunks, ingestion_events), `2026_07_15_000004` (news_items.report_id nullable), `2026_07_16_000001` (indice GIN FTS sui chunk), `2026_07_16_000002..5` (dossiers, pivot document_dossier, scoring dossier, briefs).
 
 ---
 
