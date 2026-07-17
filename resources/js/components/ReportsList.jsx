@@ -2,14 +2,43 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { REPORT_PROMPT } from '../reportPrompt';
 
+function copyToClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+
+    // navigator.clipboard richiede un secure context (HTTPS o localhost):
+    // su HTTP semplice (es. accesso via IP) è undefined, da qui il fallback.
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+        if (!document.execCommand('copy')) throw new Error('execCommand copy fallito');
+    } finally {
+        document.body.removeChild(textarea);
+    }
+}
+
 function PromptBox() {
     const [showPrompt, setShowPrompt] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [copyError, setCopyError] = useState(false);
 
     const handleCopy = async () => {
-        await navigator.clipboard.writeText(REPORT_PROMPT);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await copyToClipboard(REPORT_PROMPT);
+            setCopied(true);
+            setCopyError(false);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopyError(true);
+            setTimeout(() => setCopyError(false), 2000);
+        }
     };
 
     return (
@@ -27,7 +56,7 @@ function PromptBox() {
                     onClick={handleCopy}
                     className="text-xs bg-neutral-200 text-neutral-700 px-3 py-1.5 rounded hover:bg-neutral-300"
                 >
-                    {copied ? 'Copiato!' : 'Copia prompt'}
+                    {copyError ? 'Copia fallita' : copied ? 'Copiato!' : 'Copia prompt'}
                 </button>
             </div>
             {showPrompt && (
