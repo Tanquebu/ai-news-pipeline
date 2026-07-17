@@ -95,7 +95,7 @@ L'aggiornamento del prompt sorgente è un deliverable della Fase 1.
 | `cluster_tag` | cluster_id, tag_id (pivot) |
 | `entities` | id, name, type (company/person/regulation/product/other) |
 | `news_item_entity` | news_item_id, entity_id (pivot) |
-| `publications` | id, cluster_id (nullable), kind (linkedin_short/linkedin_medium/linkedin_opinion/article), status (draft/approved/rejected/published), title, body, variants (jsonb), generated_at, published_at, source_cluster_ids (jsonb) |
+| `publications` | id, cluster_id (nullable), kind (linkedin_short/linkedin_medium/linkedin_opinion/linkedin_large/article), status (draft/approved/rejected/published), title, body, variants (jsonb), generated_at, published_at, source_cluster_ids (jsonb) |
 | `tag_proposals` | id, slug, reason, frequency, status (pending/approved/rejected) |
 
 **Note di design:**
@@ -176,7 +176,7 @@ Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I 
 
 ### Fase 4 — Generator + Review UI
 
-- `LinkedInPostGenerator`: per cluster con score sopra soglia, genera 3 varianti (`linkedin_short`, `linkedin_medium`, `linkedin_opinion`) salvate come `publications` in `draft`
+- `LinkedInPostGenerator`: per cluster con score sopra soglia, genera 4 varianti (`linkedin_short`, `linkedin_medium`, `linkedin_opinion`, `linkedin_large`) salvate come `publications` in `draft`
 - `ArticleGenerator`: per cluster ad alto score con tema sufficientemente ricco (heuristic: ≥3 items, ≥2 entità rilevanti), genera bozza articolo lungo (outline → sezioni → coerenza)
 - SPA React minimale (Vite + Tailwind):
   - Feed cluster con filtri (sezione, tag, score min, data)

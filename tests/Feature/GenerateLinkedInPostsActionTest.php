@@ -23,12 +23,13 @@ class GenerateLinkedInPostsActionTest extends TestCase
         $this->seed(TagSeeder::class);
     }
 
-    public function test_creates_three_publication_drafts(): void
+    public function test_creates_four_publication_drafts(): void
     {
         $this->bindFakeLLM([
             'short'   => 'Post corto',
             'medium'  => 'Post medio con più contesto',
             'opinion' => 'Post opinione editoriale',
+            'large'   => 'Post lungo e strutturato con hook, sviluppo e call-to-action.',
         ]);
 
         $cluster = $this->makeCluster();
@@ -36,11 +37,11 @@ class GenerateLinkedInPostsActionTest extends TestCase
         $action        = $this->app->make(GenerateLinkedInPostsAction::class);
         $publications  = $action->execute($cluster);
 
-        $this->assertCount(3, $publications);
-        $this->assertDatabaseCount('publications', 3);
+        $this->assertCount(4, $publications);
+        $this->assertDatabaseCount('publications', 4);
 
         $kinds = collect($publications)->pluck('kind')->sort()->values()->all();
-        $this->assertSame(['linkedin_medium', 'linkedin_opinion', 'linkedin_short'], $kinds);
+        $this->assertSame(['linkedin_large', 'linkedin_medium', 'linkedin_opinion', 'linkedin_short'], $kinds);
 
         foreach ($publications as $pub) {
             $this->assertSame('draft', $pub->status);

@@ -19,7 +19,7 @@ class GenerateLinkedInPostsAction
         $cluster->loadMissing(['newsItems', 'tags']);
 
         $prompt = $this->buildPrompt($cluster);
-        $raw    = $this->llm->complete($prompt, maxTokens: 1024);
+        $raw    = $this->llm->complete($prompt, maxTokens: 2048);
         $data   = LlmJson::decode($raw);
 
         $now   = now();
@@ -27,6 +27,7 @@ class GenerateLinkedInPostsAction
             'linkedin_short'   => $data['short']   ?? '',
             'linkedin_medium'  => $data['medium']  ?? '',
             'linkedin_opinion' => $data['opinion'] ?? '',
+            'linkedin_large'   => $data['large']   ?? '',
         ];
 
         $publications = [];
@@ -57,13 +58,17 @@ class GenerateLinkedInPostsAction
         {$cluster->canonical_summary}
         TAG: {$tags}
 
-        Genera 3 versioni di post LinkedIn in italiano:
+        Genera 4 versioni di post LinkedIn in italiano:
         - "short": max 200 caratteri, impatto immediato, emoji benvenuto
         - "medium": 300-500 caratteri, contesto e takeaway principale
         - "opinion": 300-500 caratteri, prospettiva editoriale personale
+        - "large": 1000-1500 caratteri, post strutturato e approfondito con hook
+          iniziale, sviluppo in 2-3 paragrafi brevi separati da a capo (contesto,
+          implicazioni, perché conta), chiusura con call-to-action o domanda che
+          favorisca l'engagement
 
         Rispondi con SOLO JSON valido:
-        {"short": "...", "medium": "...", "opinion": "..."}
+        {"short": "...", "medium": "...", "opinion": "...", "large": "..."}
         PROMPT;
     }
 }

@@ -194,9 +194,9 @@ App\Http\Controllers\Api\ClusterController::generateLinkedIn()
 App\Actions\GenerateLinkedInPostsAction::execute(Cluster $cluster)
   │  1. carica newsItems e tags del cluster
   │  2. costruisce prompt con canonical_title, canonical_summary, tag slugs
-  │  3. AnthropicService::complete($prompt, maxTokens: 1024)
-  │  4. json_decode → {short, medium, opinion}
-  │  5. INSERT publications x3 (kind=linkedin_short/medium/opinion, status=draft)
+  │  3. AnthropicService::complete($prompt, maxTokens: 2048)
+  │  4. json_decode → {short, medium, opinion, large}
+  │  5. INSERT publications x4 (kind=linkedin_short/medium/opinion/large, status=draft)
   │  6. ritorna array di Publication
   ▼
 3 × Publication (status=draft) in DB

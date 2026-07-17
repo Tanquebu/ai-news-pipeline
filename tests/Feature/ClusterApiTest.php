@@ -230,15 +230,15 @@ class ClusterApiTest extends TestCase
 
     public function test_generate_linkedin_creates_drafts(): void
     {
-        $this->bindFakeLLM(['short' => 'Short', 'medium' => 'Medium', 'opinion' => 'Opinion']);
+        $this->bindFakeLLM(['short' => 'Short', 'medium' => 'Medium', 'opinion' => 'Opinion', 'large' => 'Large']);
 
         $cluster = $this->makeCluster(score: 0.8);
 
         $this->postJson("/api/clusters/{$cluster->id}/generate/linkedin", [], $this->auth())
             ->assertStatus(201)
-            ->assertJsonCount(3);
+            ->assertJsonCount(4);
 
-        $this->assertDatabaseCount('publications', 3);
+        $this->assertDatabaseCount('publications', 4);
     }
 
     public function test_generate_article_returns_422_for_ineligible_cluster(): void
