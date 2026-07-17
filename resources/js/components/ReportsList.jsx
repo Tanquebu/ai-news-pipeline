@@ -1,5 +1,43 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { REPORT_PROMPT } from '../reportPrompt';
+
+function PromptBox() {
+    const [showPrompt, setShowPrompt] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(REPORT_PROMPT);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="border rounded-lg bg-neutral-50">
+            <div className="flex justify-between items-center p-3">
+                <button
+                    type="button"
+                    onClick={() => setShowPrompt((v) => !v)}
+                    className="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+                >
+                    {showPrompt ? 'Nascondi' : 'Mostra'} prompt per generare il report
+                </button>
+                <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="text-xs bg-neutral-200 text-neutral-700 px-3 py-1.5 rounded hover:bg-neutral-300"
+                >
+                    {copied ? 'Copiato!' : 'Copia prompt'}
+                </button>
+            </div>
+            {showPrompt && (
+                <pre className="text-xs text-neutral-600 whitespace-pre-wrap font-mono p-3 pt-0 max-h-64 overflow-y-auto">
+                    {REPORT_PROMPT}
+                </pre>
+            )}
+        </div>
+    );
+}
 
 function IngestModal({ onClose, onSuccess }) {
     const [generators, setGenerators] = useState([]);
@@ -51,6 +89,7 @@ function IngestModal({ onClose, onSuccess }) {
                     <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
+                    <PromptBox />
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-neutral-700 mb-1">Sorgente AI</label>
