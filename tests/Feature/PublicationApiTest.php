@@ -96,6 +96,51 @@ class PublicationApiTest extends TestCase
             ->assertHeader('Content-Type', 'text/markdown; charset=UTF-8');
     }
 
+    public function test_archive_sets_archived_at(): void
+    {
+        $pub = $this->makePublication('draft');
+
+        $response = $this->postJson("/api/publications/{$pub->id}/archive", [], $this->auth())
+            ->assertOk();
+
+        $this->assertNotNull($response->json('archived_at'));
+    }
+
+    public function test_unarchive_clears_archived_at(): void
+    {
+        $pub = $this->makePublication('draft');
+        $pub->update(['archived_at' => now()]);
+
+        $response = $this->postJson("/api/publications/{$pub->id}/unarchive", [], $this->auth())
+            ->assertOk();
+
+        $this->assertNull($response->json('archived_at'));
+    }
+
+    public function test_index_excludes_archived_by_default(): void
+    {
+        $this->makePublication('draft');
+        $archived = $this->makePublication('draft');
+        $archived->update(['archived_at' => now()]);
+
+        $this->getJson('/api/publications', $this->auth())
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_index_shows_only_archived_when_requested(): void
+    {
+        $this->makePublication('draft');
+        $archived = $this->makePublication('draft');
+        $archived->update(['archived_at' => now()]);
+
+        $response = $this->getJson('/api/publications?archived=1', $this->auth())
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->assertSame($archived->id, $response->json('data.0.id'));
+    }
+
     // --- helpers ---
 
     private function makePublication(string $status, string $kind = 'linkedin_short'): Publication

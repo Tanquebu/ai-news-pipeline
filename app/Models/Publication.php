@@ -18,6 +18,7 @@ class Publication extends Model
         'variants',
         'generated_at',
         'published_at',
+        'archived_at',
         'source_cluster_ids',
     ];
 
@@ -28,6 +29,7 @@ class Publication extends Model
             'source_cluster_ids' => 'array',
             'generated_at'       => 'datetime',
             'published_at'       => 'datetime',
+            'archived_at'        => 'datetime',
         ];
     }
 

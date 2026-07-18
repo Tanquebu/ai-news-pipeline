@@ -15,18 +15,35 @@ use Illuminate\Validation\ValidationException;
 
 class ReportController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $reports = Report::withCount([
+        $query = Report::withCount([
             'newsItems',
-            'newsItems as processed_items_count' => fn ($query) => $query
+            'newsItems as processed_items_count' => fn ($q) => $q
                 ->whereHas('cluster', fn ($cluster) => $cluster->whereNotNull('total_score')),
         ])
             ->orderByDesc('report_date')
-            ->orderByDesc('ingested_at')
-            ->paginate(50);
+            ->orderByDesc('ingested_at');
 
-        return response()->json($reports);
+        $request->boolean('archived')
+            ? $query->whereNotNull('archived_at')
+            : $query->whereNull('archived_at');
+
+        return response()->json($query->paginate(50));
+    }
+
+    public function archive(Report $report): JsonResponse
+    {
+        $report->update(['archived_at' => now()]);
+
+        return response()->json($report->fresh());
+    }
+
+    public function unarchive(Report $report): JsonResponse
+    {
+        $report->update(['archived_at' => null]);
+
+        return response()->json($report->fresh());
     }
 
     public function show(Report $report): JsonResponse

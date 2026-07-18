@@ -29,6 +29,14 @@ function PublicationItem({ pub, onUpdate }) {
             .finally(() => setSaving(false));
     };
 
+    const toggleArchive = () => {
+        setSaving(true);
+        const action = pub.archived_at ? api.unarchivePublication : api.archivePublication;
+        action(pub.id)
+            .then(onUpdate)
+            .finally(() => setSaving(false));
+    };
+
     const exportMd = () => {
         api.exportPublication(pub.id).then((blob) => {
             const url = URL.createObjectURL(blob);
@@ -85,6 +93,10 @@ function PublicationItem({ pub, onUpdate }) {
                             Export MD
                         </button>
                     )}
+                    <button onClick={toggleArchive} disabled={saving}
+                            className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+                        {pub.archived_at ? 'Ripristina' : 'Archivia'}
+                    </button>
                 </div>
             </div>
 
@@ -113,17 +125,21 @@ function PublicationItem({ pub, onUpdate }) {
 export default function PublicationsList() {
     const { items: publications, loading, loadingMore, hasMore, load, loadMore } = usePaginatedList(api.getPublications);
     const [statusFilter, setStatusFilter] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
 
-    const activeParams = () => statusFilter ? { status: statusFilter } : {};
+    const activeParams = () => ({
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(showArchived ? { archived: '1' } : {}),
+    });
     const reload = () => load(activeParams());
 
-    useEffect(reload, [statusFilter]);
+    useEffect(reload, [statusFilter, showArchived]);
 
     return (
         <div className="max-w-4xl mx-auto p-6">
             <h1 className="text-2xl font-bold mb-6">Pubblicazioni</h1>
 
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6 items-center flex-wrap">
                 {['', 'draft', 'approved', 'rejected', 'published'].map((s) => (
                     <button
                         key={s}
@@ -133,6 +149,15 @@ export default function PublicationsList() {
                         {s || 'Tutti'}
                     </button>
                 ))}
+                <label className="text-sm text-fg-secondary flex items-center gap-1.5 ml-2">
+                    <input
+                        type="checkbox"
+                        checked={showArchived}
+                        onChange={(e) => setShowArchived(e.target.checked)}
+                        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                    />
+                    Mostra archiviate
+                </label>
             </div>
 
             {loading && <p className="text-fg-muted">Caricamento…</p>}

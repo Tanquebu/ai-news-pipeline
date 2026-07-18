@@ -15,6 +15,7 @@ class Report extends Model
         'payload',
         'payload_hash',
         'ingested_at',
+        'archived_at',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class Report extends Model
             'report_date'  => 'date',
             'payload'      => 'array',
             'ingested_at'  => 'datetime',
+            'archived_at'  => 'datetime',
         ];
     }
 

@@ -26,7 +26,25 @@ class PublicationController extends Controller
             $query->where('kind', $request->query('kind'));
         }
 
+        $request->boolean('archived')
+            ? $query->whereNotNull('archived_at')
+            : $query->whereNull('archived_at');
+
         return response()->json($query->paginate(20));
+    }
+
+    public function archive(Publication $publication): JsonResponse
+    {
+        $publication->update(['archived_at' => now()]);
+
+        return response()->json($publication->fresh());
+    }
+
+    public function unarchive(Publication $publication): JsonResponse
+    {
+        $publication->update(['archived_at' => null]);
+
+        return response()->json($publication->fresh());
     }
 
     public function update(UpdatePublicationRequest $request, Publication $publication): JsonResponse

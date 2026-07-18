@@ -45,6 +45,10 @@ export const api = {
 
     deleteReport: (id) => request('DELETE', `/reports/${id}`),
 
+    archiveReport: (id) => request('POST', `/reports/${id}/archive`),
+
+    unarchiveReport: (id) => request('POST', `/reports/${id}/unarchive`),
+
     getPublications: (params = {}) =>
         request('GET', '/publications?' + new URLSearchParams(params)),
 
@@ -52,4 +56,8 @@ export const api = {
         request('PATCH', `/publications/${id}`, data),
 
     exportPublication: (id) => request('GET', `/publications/${id}/export`),
+
+    archivePublication: (id) => request('POST', `/publications/${id}/archive`),
+
+    unarchivePublication: (id) => request('POST', `/publications/${id}/unarchive`),
 };

@@ -217,9 +217,10 @@ function IngestModal({ onClose, onSuccess }) {
     );
 }
 
-function ReportDetailModal({ reportId, onClose }) {
+function ReportDetailModal({ reportId, onClose, onUpdate }) {
     const [report, setReport] = useState(null);
     const [error, setError] = useState(null);
+    const [archiving, setArchiving] = useState(false);
 
     useEffect(() => {
         api.getReport(reportId)
@@ -227,13 +228,29 @@ function ReportDetailModal({ reportId, onClose }) {
             .catch((err) => setError(err.message));
     }, [reportId]);
 
+    const toggleArchive = () => {
+        setArchiving(true);
+        const action = report.archived_at ? api.unarchiveReport : api.archiveReport;
+        action(reportId)
+            .then((updated) => { setReport({ ...report, ...updated }); onUpdate(); })
+            .finally(() => setArchiving(false));
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-surface rounded-modal shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="p-6 border-b border-border flex justify-between items-center shrink-0">
-                    <h2 className="text-lg font-semibold">
-                        Report {report ? `— ${report.source_ai} (${report.report_date})` : ''}
-                    </h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-semibold">
+                            Report {report ? `— ${report.source_ai} (${report.report_date})` : ''}
+                        </h2>
+                        {report && (
+                            <button onClick={toggleArchive} disabled={archiving}
+                                    className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+                                {report.archived_at ? 'Ripristina' : 'Archivia'}
+                            </button>
+                        )}
+                    </div>
                     <button onClick={onClose} className="text-fg-muted hover:text-fg-secondary text-2xl leading-none">&times;</button>
                 </div>
                 <div className="p-6 overflow-y-auto flex-1">
@@ -291,8 +308,12 @@ export default function ReportsList() {
     const [deleting, setDeleting] = useState(null);
     const [showIngest, setShowIngest] = useState(false);
     const [detailId, setDetailId] = useState(null);
+    const [showArchived, setShowArchived] = useState(false);
 
-    useEffect(() => { load(); }, []);
+    const activeParams = () => showArchived ? { archived: '1' } : {};
+    const reload = () => load(activeParams());
+
+    useEffect(reload, [showArchived]);
 
     const handleDelete = (report, e) => {
         e.stopPropagation();
@@ -301,7 +322,7 @@ export default function ReportsList() {
         }
         setDeleting(report.id);
         api.deleteReport(report.id)
-            .then(() => load())
+            .then(reload)
             .catch((err) => alert(`Errore: ${err.message}`))
             .finally(() => setDeleting(null));
     };
@@ -318,6 +339,16 @@ export default function ReportsList() {
                 </button>
             </div>
 
+            <label className="text-sm text-fg-secondary flex items-center gap-1.5 mb-4">
+                <input
+                    type="checkbox"
+                    checked={showArchived}
+                    onChange={(e) => setShowArchived(e.target.checked)}
+                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                />
+                Mostra archiviati
+            </label>
+
             {loading && <p className="text-fg-muted">Caricamento…</p>}
 
             {!loading && reports.length === 0 && (
@@ -333,6 +364,9 @@ export default function ReportsList() {
                             <p className="font-medium flex items-center gap-2">
                                 {r.report_date}
                                 <ProcessingBadge total={r.news_items_count} processed={r.processed_items_count} />
+                                {r.archived_at && (
+                                    <span className="text-xs bg-surface-muted text-fg-muted px-1.5 py-0.5 rounded">Archiviato</span>
+                                )}
                             </p>
                             <p className="text-sm text-fg-muted mt-0.5">
                                 <span className="bg-surface-muted text-fg-secondary px-1.5 py-0.5 rounded text-xs mr-1">
@@ -359,7 +393,7 @@ export default function ReportsList() {
             {showIngest && (
                 <IngestModal
                     onClose={() => setShowIngest(false)}
-                    onSuccess={() => load()}
+                    onSuccess={reload}
                 />
             )}
 
@@ -367,6 +401,7 @@ export default function ReportsList() {
                 <ReportDetailModal
                     reportId={detailId}
                     onClose={() => setDetailId(null)}
+                    onUpdate={reload}
                 />
             )}
         </div>

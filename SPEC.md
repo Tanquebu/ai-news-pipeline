@@ -86,7 +86,7 @@ L'aggiornamento del prompt sorgente è un deliverable della Fase 1.
 
 | Tabella | Colonne principali |
 |---|---|
-| `reports` | id, report_date, source_ai, payload (jsonb), payload_hash (sha256, **unique globale**), ingested_at |
+| `reports` | id, report_date, source_ai, payload (jsonb), payload_hash (sha256, **unique globale**), ingested_at, archived_at (nullable) |
 | `news_items` | id, report_id, section (enum), title, summary, entities (jsonb), event_date (**nullable**), raw_tags (jsonb), importance_self_rated (**nullable**, 1-5), embedding (vector(1536)), cluster_id (nullable) |
 | `news_item_sources` | id, news_item_id, name, url, position (preserva l'ordine originale nel JSON) |
 | `clusters` | id, canonical_title, canonical_summary, first_seen_at, last_seen_at, consensus_count, novelty_score, importance_avg, topic_match_score, total_score, status (active/archived) |
@@ -95,7 +95,7 @@ L'aggiornamento del prompt sorgente è un deliverable della Fase 1.
 | `cluster_tag` | cluster_id, tag_id (pivot) |
 | `entities` | id, name, type (company/person/regulation/product/other) |
 | `news_item_entity` | news_item_id, entity_id (pivot) |
-| `publications` | id, cluster_id (nullable), kind (linkedin_short/linkedin_medium/linkedin_opinion/linkedin_large/article), status (draft/approved/rejected/published), title, body, variants (jsonb), generated_at, published_at, source_cluster_ids (jsonb) |
+| `publications` | id, cluster_id (nullable), kind (linkedin_short/linkedin_medium/linkedin_opinion/linkedin_large/article), status (draft/approved/rejected/published), title, body, variants (jsonb), generated_at, published_at, archived_at (nullable, indipendente da status), source_cluster_ids (jsonb) |
 | `tag_proposals` | id, slug, reason, frequency, status (pending/approved/rejected) |
 
 **Note di design:**

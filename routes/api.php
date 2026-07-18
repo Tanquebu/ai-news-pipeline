@@ -35,6 +35,8 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::get('/reports/generators', [ReportController::class, 'generators']);
     Route::get('/reports/{report}', [ReportController::class, 'show']);
     Route::post('/reports/ingest', [ReportController::class, 'ingest']);
+    Route::post('/reports/{report}/archive', [ReportController::class, 'archive']);
+    Route::post('/reports/{report}/unarchive', [ReportController::class, 'unarchive']);
     Route::delete('/reports/{report}', [ReportController::class, 'destroy']);
 
     Route::get('/news-items', [NewsItemController::class, 'index']);
@@ -42,4 +44,6 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::get('/publications', [PublicationController::class, 'index']);
     Route::patch('/publications/{publication}', [PublicationController::class, 'update']);
     Route::get('/publications/{publication}/export', [PublicationController::class, 'export']);
+    Route::post('/publications/{publication}/archive', [PublicationController::class, 'archive']);
+    Route::post('/publications/{publication}/unarchive', [PublicationController::class, 'unarchive']);
 });

@@ -224,4 +224,46 @@ class ReportApiTest extends TestCase
         $this->authed()->deleteJson('/api/reports/99999')
             ->assertNotFound();
     }
+
+    public function test_archive_sets_archived_at(): void
+    {
+        $report = $this->makeReport();
+
+        $response = $this->authed()->postJson("/api/reports/{$report->id}/archive")
+            ->assertOk();
+
+        $this->assertNotNull($response->json('archived_at'));
+    }
+
+    public function test_unarchive_clears_archived_at(): void
+    {
+        $report = $this->makeReport(['archived_at' => now()]);
+
+        $response = $this->authed()->postJson("/api/reports/{$report->id}/unarchive")
+            ->assertOk();
+
+        $this->assertNull($response->json('archived_at'));
+    }
+
+    public function test_index_excludes_archived_by_default(): void
+    {
+        $this->makeReport();
+        $this->makeReport(['archived_at' => now()]);
+
+        $this->authed()->getJson('/api/reports')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_index_shows_only_archived_when_requested(): void
+    {
+        $this->makeReport();
+        $archived = $this->makeReport(['archived_at' => now()]);
+
+        $response = $this->authed()->getJson('/api/reports?archived=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->assertSame($archived->id, $response->json('data.0.id'));
+    }
 }
