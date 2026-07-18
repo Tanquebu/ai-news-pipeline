@@ -169,7 +169,7 @@ Gli slug nel seeder vanno già in forma normalizzata (lowercase, kebab-case). I 
 - Calcolo `total_score = w1*consensus + w2*novelty + w3*importance_avg + w4*topic_match` (pesi da `.env`)
   - **`importance_avg` è calcolato come media di `COALESCE(importance_self_rated, 3)` sugli items del cluster** (fallback al valore mediano per gli item dove l'AI non ha dichiarato il rating)
   - `topic_match` = frazione di tag del cluster che cadono nei `SCORING_TOPIC_INTEREST_TAGS`
-- Console command `clusters:rescore` per ricalcolo bulk dopo modifica pesi
+- Console command `clusters:rescore` per ricalcolo bulk dopo modifica pesi; schedulato anche giornalmente (00:15) perché un item agganciato a un cluster esistente non ritrigghera la synthesis, quindi `consensus_count` resterebbe fuori da `total_score` senza un rescore periodico
 - Console command `clusters:list --top=N --since=DATE` per consultazione da terminale
 
 **Done quando**: posso eseguire `clusters:list --top=10 --since=yesterday` e ottenere una vista ordinata sensata.

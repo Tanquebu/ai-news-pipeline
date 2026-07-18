@@ -45,7 +45,7 @@ UI: seguire `docs/ui-direction.md`.
 ./vendor/bin/sail artisan dossiers:score --dry-run            # scoring spiegabile + candidatura a brief
 ./vendor/bin/sail artisan briefs:generate --dry-run           # brief settimanali dai dossier candidati (--limit=N)
 
-# Scheduler (routes/console.php): clusters:archive daily,
+# Scheduler (routes/console.php): clusters:archive daily, clusters:rescore 00:15,
 # dossiers:consolidate 03:30, dossiers:score 03:45, briefs:generate dom 05:00.
 # In produzione serve un cron che esegua `artisan schedule:run` ogni minuto.
 ./vendor/bin/sail artisan schedule:list

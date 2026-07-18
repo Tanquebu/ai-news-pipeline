@@ -9,6 +9,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('clusters:archive')->daily();
+// Un item che si aggancia a un cluster esistente (ClusterNewsItemJob) non
+// ritrigghera mai la synthesis: senza un rescore periodico, consensus_count
+// resta fuori dal total_score finché non si lancia il comando a mano. Nessuna
+// chiamata LLM in ScoringService::updateScore, solo query DB — costo trascurabile.
+Schedule::command('clusters:rescore')->dailyAt('00:15');
 Schedule::command('dossiers:consolidate')->dailyAt('03:30');
 // Dopo il consolidamento: score e candidatura calcolati sui membri aggiornati.
 Schedule::command('dossiers:score')->dailyAt('03:45');
