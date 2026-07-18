@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 
 const STATUS_COLORS = {
-    draft:     'bg-yellow-50 text-yellow-700',
-    approved:  'bg-green-50 text-green-700',
-    rejected:  'bg-red-50 text-red-700',
-    published: 'bg-blue-50 text-blue-700',
+    draft:     'bg-warning-soft text-warning',
+    approved:  'bg-success-soft text-success',
+    rejected:  'bg-danger-soft text-danger',
+    published: 'bg-primary-soft text-primary',
 };
 
 function PublicationItem({ pub, onUpdate }) {
@@ -39,11 +39,11 @@ function PublicationItem({ pub, onUpdate }) {
     };
 
     return (
-        <li className="bg-white border rounded-lg p-4 shadow-sm">
+        <li className="bg-surface border border-border rounded-card p-4 shadow-sm">
             <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{pub.title}</p>
-                    <p className="text-xs text-neutral-500 mt-0.5">
+                    <p className="text-xs text-fg-muted mt-0.5">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-mono ${STATUS_COLORS[pub.status]}`}>
                             {pub.kind}
                         </span>
@@ -58,28 +58,28 @@ function PublicationItem({ pub, onUpdate }) {
                     {pub.status === 'draft' && (
                         <>
                             <button onClick={() => act('approved')} disabled={saving}
-                                    className="text-xs bg-green-600 text-white px-2 py-1 rounded disabled:opacity-50">
+                                    className="text-xs bg-success text-on-primary px-2 py-1 rounded hover:bg-success/90 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                                 Approva
                             </button>
                             <button onClick={() => act('rejected')} disabled={saving}
-                                    className="text-xs bg-red-600 text-white px-2 py-1 rounded disabled:opacity-50">
+                                    className="text-xs bg-danger text-on-primary px-2 py-1 rounded hover:bg-danger/90 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                                 Rifiuta
                             </button>
                         </>
                     )}
                     {pub.status === 'approved' && (
                         <button onClick={() => act('published')} disabled={saving}
-                                className="text-xs bg-blue-600 text-white px-2 py-1 rounded disabled:opacity-50">
+                                className="text-xs bg-primary text-on-primary px-2 py-1 rounded hover:bg-primary-hover disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                             Pubblica
                         </button>
                     )}
                     <button onClick={() => setEditing(!editing)}
-                            className="text-xs border px-2 py-1 rounded">
+                            className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                         {editing ? 'Chiudi' : 'Modifica'}
                     </button>
                     {pub.kind === 'article' && (
                         <button onClick={exportMd}
-                                className="text-xs border px-2 py-1 rounded">
+                                className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                             Export MD
                         </button>
                     )}
@@ -87,7 +87,7 @@ function PublicationItem({ pub, onUpdate }) {
             </div>
 
             {!editing && (
-                <p className="text-sm text-neutral-700 mt-3 whitespace-pre-wrap line-clamp-4">{pub.body}</p>
+                <p className="text-sm text-fg mt-3 whitespace-pre-wrap line-clamp-4">{pub.body}</p>
             )}
 
             {editing && (
@@ -96,10 +96,10 @@ function PublicationItem({ pub, onUpdate }) {
                         value={body}
                         onChange={(e) => setBody(e.target.value)}
                         rows={10}
-                        className="w-full border rounded p-2 text-sm font-mono"
+                        className="w-full border border-border rounded p-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                     />
                     <button onClick={saveBody} disabled={saving}
-                            className="mt-2 bg-blue-600 text-white text-sm px-3 py-1.5 rounded disabled:opacity-50">
+                            className="mt-2 bg-primary text-on-primary text-sm px-3 py-1.5 rounded hover:bg-primary-hover disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                         {saving ? 'Salvataggio…' : 'Salva'}
                     </button>
                 </div>
@@ -132,14 +132,14 @@ export default function PublicationsList() {
                     <button
                         key={s}
                         onClick={() => setStatusFilter(s)}
-                        className={`text-sm px-3 py-1 rounded border ${statusFilter === s ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                        className={`text-sm px-3 py-1 rounded border focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ${statusFilter === s ? 'bg-primary text-on-primary border-primary' : 'border-border hover:bg-surface-muted'}`}
                     >
                         {s || 'Tutti'}
                     </button>
                 ))}
             </div>
 
-            {loading && <p className="text-neutral-500">Caricamento…</p>}
+            {loading && <p className="text-fg-muted">Caricamento…</p>}
 
             <ul className="space-y-4">
                 {publications.map((pub) => (
@@ -148,7 +148,7 @@ export default function PublicationsList() {
             </ul>
 
             {!loading && publications.length === 0 && (
-                <p className="text-neutral-500">Nessuna pubblicazione trovata.</p>
+                <p className="text-fg-muted">Nessuna pubblicazione trovata.</p>
             )}
         </div>
     );

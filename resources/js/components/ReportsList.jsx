@@ -42,25 +42,25 @@ function PromptBox() {
     };
 
     return (
-        <div className="border rounded-lg bg-neutral-50">
+        <div className="border border-border rounded-lg bg-surface-muted">
             <div className="flex justify-between items-center p-3">
                 <button
                     type="button"
                     onClick={() => setShowPrompt((v) => !v)}
-                    className="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+                    className="text-sm font-medium text-fg-secondary hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 >
                     {showPrompt ? 'Nascondi' : 'Mostra'} prompt per generare il report
                 </button>
                 <button
                     type="button"
                     onClick={handleCopy}
-                    className="text-xs bg-neutral-200 text-neutral-700 px-3 py-1.5 rounded hover:bg-neutral-300"
+                    className="text-xs bg-surface border border-border text-fg-secondary px-3 py-1.5 rounded hover:bg-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 >
                     {copyError ? 'Copia fallita' : copied ? 'Copiato!' : 'Copia prompt'}
                 </button>
             </div>
             {showPrompt && (
-                <pre className="text-xs text-neutral-600 whitespace-pre-wrap font-mono p-3 pt-0 max-h-64 overflow-y-auto">
+                <pre className="text-xs text-fg-secondary whitespace-pre-wrap font-mono p-3 pt-0 max-h-64 overflow-y-auto">
                     {REPORT_PROMPT}
                 </pre>
             )}
@@ -125,19 +125,19 @@ function IngestModal({ onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="p-6 border-b flex justify-between items-center shrink-0">
+            <div className="bg-surface rounded-modal shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div className="p-6 border-b border-border flex justify-between items-center shrink-0">
                     <h2 className="text-lg font-semibold">Importa report</h2>
-                    <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-fg-muted hover:text-fg-secondary text-2xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
                     <PromptBox />
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Formato JSON incollato</label>
+                        <label className="block text-sm font-medium text-fg-secondary mb-1">Formato JSON incollato</label>
                         <select
                             value={format}
                             onChange={(e) => setFormat(e.target.value)}
-                            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                         >
                             <option value="object">Oggetto completo — con report_date e source_ai (output del prompt)</option>
                             <option value="array">Solo array items — sorgente e data inserite a mano</option>
@@ -146,36 +146,36 @@ function IngestModal({ onClose, onSuccess }) {
                     {format === 'array' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-1">Sorgente AI</label>
+                                <label className="block text-sm font-medium text-fg-secondary mb-1">Sorgente AI</label>
                                 <input
                                     list="generators-list"
                                     value={sourceAi}
                                     onChange={(e) => setSourceAi(e.target.value)}
                                     required
                                     placeholder="es. claude-opus-4-7"
-                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                                 />
                                 <datalist id="generators-list">
                                     {generators.map((g) => <option key={g} value={g} />)}
                                 </datalist>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-1">Data report</label>
+                                <label className="block text-sm font-medium text-fg-secondary mb-1">Data report</label>
                                 <input
                                     type="date"
                                     value={reportDate}
                                     onChange={(e) => setReportDate(e.target.value)}
                                     required
-                                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                                 />
                             </div>
                         </div>
                     )}
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                        <label className="block text-sm font-medium text-fg-secondary mb-1">
                             {format === 'object'
-                                ? <>JSON report <span className="font-normal text-neutral-400">(oggetto con report_date, source_ai, items)</span></>
-                                : <>Items <span className="font-normal text-neutral-400">(array JSON)</span></>}
+                                ? <>JSON report <span className="font-normal text-fg-muted">(oggetto con report_date, source_ai, items)</span></>
+                                : <>Items <span className="font-normal text-fg-muted">(array JSON)</span></>}
                         </label>
                         <textarea
                             value={itemsJson}
@@ -184,27 +184,27 @@ function IngestModal({ onClose, onSuccess }) {
                             placeholder={format === 'object'
                                 ? '{\n  "report_date": "2026-07-17",\n  "source_ai": "claude-opus-4-7",\n  "items": [\n    {\n      "section": "strategic",\n      "title": "...",\n      "summary": "...",\n      "entities": [],\n      "event_date": null,\n      "sources": [],\n      "importance_self_rated": null,\n      "raw_tags": []\n    }\n  ]\n}'
                                 : '[\n  {\n    "section": "strategic",\n    "title": "...",\n    "summary": "...",\n    "entities": [],\n    "event_date": null,\n    "sources": [],\n    "importance_self_rated": null,\n    "raw_tags": []\n  }\n]'}
-                            className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 h-64 resize-y"
+                            className="w-full border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 h-64 resize-y"
                         />
                     </div>
                     {error && (
-                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+                        <p className="text-sm text-danger bg-danger-soft border border-danger-softer rounded-lg px-3 py-2">{error}</p>
                     )}
                     {success && (
-                        <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{success}</p>
+                        <p className="text-sm text-success bg-success-soft border border-success-softer rounded-lg px-3 py-2">{success}</p>
                     )}
                     <div className="flex justify-end gap-3 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="text-sm px-4 py-2 rounded-lg border hover:bg-neutral-50"
+                            className="text-sm px-4 py-2 rounded-lg border border-border hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                         >
                             Annulla
                         </button>
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="text-sm px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-hover disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                         >
                             {submitting ? 'Importazione…' : 'Importa'}
                         </button>
@@ -227,31 +227,31 @@ function ReportDetailModal({ reportId, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="p-6 border-b flex justify-between items-center shrink-0">
+            <div className="bg-surface rounded-modal shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div className="p-6 border-b border-border flex justify-between items-center shrink-0">
                     <h2 className="text-lg font-semibold">
                         Report {report ? `— ${report.source_ai} (${report.report_date})` : ''}
                     </h2>
-                    <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-fg-muted hover:text-fg-secondary text-2xl leading-none">&times;</button>
                 </div>
                 <div className="p-6 overflow-y-auto flex-1">
-                    {error && <p className="text-sm text-red-600">{error}</p>}
-                    {!report && !error && <p className="text-neutral-500">Caricamento…</p>}
+                    {error && <p className="text-sm text-danger">{error}</p>}
+                    {!report && !error && <p className="text-fg-muted">Caricamento…</p>}
                     {report && report.news_items?.length === 0 && (
-                        <p className="text-neutral-500">Nessuna notizia in questo report.</p>
+                        <p className="text-fg-muted">Nessuna notizia in questo report.</p>
                     )}
                     {report && report.news_items?.length > 0 && (
                         <ul className="space-y-3">
                             {report.news_items.map((item) => (
-                                <li key={item.id} className="bg-white border rounded p-3 text-sm">
+                                <li key={item.id} className="bg-surface border border-border rounded p-3 text-sm">
                                     <div className="flex justify-between items-start gap-2">
                                         <p className="font-medium">[{item.section}] {item.title}</p>
                                     </div>
-                                    <p className="text-neutral-600 mt-1">{item.summary}</p>
+                                    <p className="text-fg-secondary mt-1">{item.summary}</p>
                                     {item.entities?.length > 0 && (
                                         <div className="flex gap-1 mt-2 flex-wrap">
                                             {item.entities.map((e, i) => (
-                                                <span key={i} className="text-xs bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                                                <span key={i} className="text-xs bg-surface-muted text-fg-secondary px-1.5 py-0.5 rounded">
                                                     {e}
                                                 </span>
                                             ))}
@@ -269,19 +269,19 @@ function ReportDetailModal({ reportId, onClose }) {
 
 function ProcessingBadge({ total, processed }) {
     if (total === 0) {
-        return <span className="text-xs bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded">Nessuna notizia</span>;
+        return <span className="text-xs bg-surface-muted text-fg-muted px-1.5 py-0.5 rounded">Nessuna notizia</span>;
     }
     if (processed === 0) {
-        return <span className="text-xs bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded">In attesa</span>;
+        return <span className="text-xs bg-surface-muted text-fg-muted px-1.5 py-0.5 rounded">In attesa</span>;
     }
     if (processed < total) {
         return (
-            <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">
+            <span className="text-xs bg-warning-soft text-warning px-1.5 py-0.5 rounded">
                 In corso · {processed}/{total}
             </span>
         );
     }
-    return <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">Completato</span>;
+    return <span className="text-xs bg-success-soft text-success px-1.5 py-0.5 rounded">Completato</span>;
 }
 
 export default function ReportsList() {
@@ -318,30 +318,30 @@ export default function ReportsList() {
                 <h1 className="text-2xl font-bold">Report importati</h1>
                 <button
                     onClick={() => setShowIngest(true)}
-                    className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    className="text-sm bg-primary text-on-primary px-4 py-2 rounded-lg hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 >
                     Importa report
                 </button>
             </div>
 
-            {loading && <p className="text-neutral-500">Caricamento…</p>}
+            {loading && <p className="text-fg-muted">Caricamento…</p>}
 
             {!loading && reports.length === 0 && (
-                <p className="text-neutral-500">Nessun report importato.</p>
+                <p className="text-fg-muted">Nessun report importato.</p>
             )}
 
             <ul className="space-y-2">
                 {reports.map((r) => (
                     <li key={r.id}
                         onClick={() => setDetailId(r.id)}
-                        className="bg-white border rounded-lg p-4 shadow-sm flex justify-between items-center gap-4 cursor-pointer hover:bg-neutral-50">
+                        className="bg-surface border border-border rounded-card p-4 shadow-sm flex justify-between items-center gap-4 cursor-pointer hover:bg-surface-muted">
                         <div>
                             <p className="font-medium flex items-center gap-2">
                                 {r.report_date}
                                 <ProcessingBadge total={r.news_items_count} processed={r.processed_items_count} />
                             </p>
-                            <p className="text-sm text-neutral-500 mt-0.5">
-                                <span className="bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded text-xs mr-1">
+                            <p className="text-sm text-fg-muted mt-0.5">
+                                <span className="bg-surface-muted text-fg-secondary px-1.5 py-0.5 rounded text-xs mr-1">
                                     {r.source_ai}
                                 </span>
                                 {r.news_items_count} {r.news_items_count === 1 ? 'notizia' : 'notizie'}
@@ -352,7 +352,7 @@ export default function ReportsList() {
                         <button
                             onClick={(e) => handleDelete(r, e)}
                             disabled={deleting === r.id}
-                            className="text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 shrink-0"
+                            className="text-xs bg-danger text-on-primary px-3 py-1.5 rounded hover:bg-danger/90 disabled:opacity-50 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                         >
                             {deleting === r.id ? 'Eliminazione…' : 'Elimina'}
                         </button>

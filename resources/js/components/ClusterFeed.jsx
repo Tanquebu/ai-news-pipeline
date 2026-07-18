@@ -40,63 +40,66 @@ export default function ClusterFeed() {
                     placeholder="Score min (es. 0.5)"
                     value={filters.score_min}
                     onChange={(e) => setFilters({ ...filters, score_min: e.target.value })}
-                    className="border rounded px-3 py-1.5 text-sm"
+                    className="border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 />
                 <input
                     placeholder="Tag (es. mcp)"
                     value={filters.tag}
                     onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
-                    className="border rounded px-3 py-1.5 text-sm"
+                    className="border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 />
                 <input
                     type="date"
                     value={filters.since}
                     onChange={(e) => setFilters({ ...filters, since: e.target.value })}
-                    className="border rounded px-3 py-1.5 text-sm"
+                    className="border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 />
                 <select
                     value={filters.source_ai}
                     onChange={(e) => setFilters({ ...filters, source_ai: e.target.value })}
-                    className="border rounded px-3 py-1.5 text-sm"
+                    className="border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 >
                     <option value="">Tutti i generatori</option>
                     {generators.map((g) => (
                         <option key={g} value={g}>{g}</option>
                     ))}
                 </select>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm">
+                <button
+                    type="submit"
+                    className="bg-primary text-on-primary px-4 py-1.5 rounded text-sm hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                >
                     Filtra
                 </button>
             </form>
 
-            {loading && <p className="text-neutral-500">Caricamento…</p>}
-            {error   && <p className="text-red-500">{error}</p>}
+            {loading && <p className="text-fg-muted">Caricamento…</p>}
+            {error   && <p className="text-danger">{error}</p>}
 
             <ul className="space-y-4">
                 {clusters.map((c) => (
-                    <li key={c.id} className="bg-white border rounded-lg p-4 shadow-sm">
+                    <li key={c.id} className="bg-surface border border-border rounded-card p-4 shadow-sm">
                         <div className="flex justify-between items-start">
-                            <Link to={`/clusters/${c.id}`} className="font-semibold text-blue-700 hover:underline">
+                            <Link to={`/clusters/${c.id}`} className="font-semibold text-primary hover:underline">
                                 {c.canonical_title}
                             </Link>
-                            <span className="text-xs font-mono bg-neutral-100 px-2 py-0.5 rounded">
+                            <span className="text-xs font-mono bg-surface-muted px-2 py-0.5 rounded">
                                 {Number(c.total_score).toFixed(3)}
                             </span>
                         </div>
-                        <p className="text-sm text-neutral-600 mt-1 line-clamp-2">{c.canonical_summary}</p>
+                        <p className="text-sm text-fg-secondary mt-1 line-clamp-2">{c.canonical_summary}</p>
                         <div className="mt-2 flex gap-1 flex-wrap">
                             {c.tags?.map((t) => (
-                                <span key={t.slug} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                                <span key={t.slug} className="text-xs bg-primary-soft text-primary px-2 py-0.5 rounded">
                                     {t.slug}
                                 </span>
                             ))}
                             {[...new Set(c.news_items?.map((i) => i.report?.source_ai).filter(Boolean))].map((ai) => (
-                                <span key={ai} className="text-xs bg-neutral-100 text-neutral-500 px-2 py-0.5 rounded">
+                                <span key={ai} className="text-xs bg-surface-muted text-fg-muted px-2 py-0.5 rounded">
                                     {ai}
                                 </span>
                             ))}
                         </div>
-                        <p className="text-xs text-neutral-400 mt-2">
+                        <p className="text-xs text-fg-muted mt-2">
                             consensus: {c.consensus_count} · {c.last_seen_at?.substring(0, 10)}
                             {c.news_items_min_event_date && (
                                 <> · evento: {c.news_items_min_event_date}{c.news_items_max_event_date && c.news_items_max_event_date !== c.news_items_min_event_date ? ` → ${c.news_items_max_event_date}` : ''}</>
