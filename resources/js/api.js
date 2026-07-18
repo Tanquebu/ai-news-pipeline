@@ -34,7 +34,8 @@ export const api = {
     generateArticle: (clusterId) =>
         request('POST', `/clusters/${clusterId}/generate/article`),
 
-    getReports: () => request('GET', '/reports'),
+    getReports: (params = {}) =>
+        request('GET', '/reports?' + new URLSearchParams(params)),
 
     getReport: (id) => request('GET', `/reports/${id}`),
 

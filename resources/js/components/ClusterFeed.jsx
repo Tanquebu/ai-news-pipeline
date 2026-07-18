@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { usePaginatedList } from '../hooks/usePaginatedList';
+import LoadMoreButton from './LoadMoreButton';
 
 export default function ClusterFeed() {
-    const [clusters, setClusters]   = useState([]);
-    const [loading, setLoading]     = useState(true);
-    const [error, setError]         = useState(null);
+    const { items: clusters, loading, loadingMore, hasMore, error, load, loadMore } = usePaginatedList(api.getClusters);
     const [filters, setFilters]     = useState({ score_min: '', tag: '', since: '', source_ai: '' });
     const [generators, setGenerators] = useState([]);
 
@@ -13,22 +13,15 @@ export default function ClusterFeed() {
         api.getGenerators().then(setGenerators).catch(() => {});
     }, []);
 
-    const load = () => {
-        setLoading(true);
-        const params = Object.fromEntries(
-            Object.entries(filters).filter(([, v]) => v !== '')
-        );
-        api.getClusters(params)
-            .then((data) => setClusters(data.data ?? []))
-            .catch((e) => setError(e.message))
-            .finally(() => setLoading(false));
-    };
+    const activeParams = () => Object.fromEntries(
+        Object.entries(filters).filter(([, v]) => v !== '')
+    );
 
-    useEffect(load, []);
+    useEffect(() => { load(activeParams()); }, []);
 
     const handleFilter = (e) => {
         e.preventDefault();
-        load();
+        load(activeParams());
     };
 
     return (
@@ -108,6 +101,8 @@ export default function ClusterFeed() {
                     </li>
                 ))}
             </ul>
+
+            <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
         </div>
     );
 }

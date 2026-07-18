@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { REPORT_PROMPT } from '../reportPrompt';
+import { usePaginatedList } from '../hooks/usePaginatedList';
+import LoadMoreButton from './LoadMoreButton';
 
 function copyToClipboard(text) {
     if (navigator.clipboard?.writeText) {
@@ -285,20 +287,12 @@ function ProcessingBadge({ total, processed }) {
 }
 
 export default function ReportsList() {
-    const [reports, setReports] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { items: reports, loading, loadingMore, hasMore, load, loadMore } = usePaginatedList(api.getReports);
     const [deleting, setDeleting] = useState(null);
     const [showIngest, setShowIngest] = useState(false);
     const [detailId, setDetailId] = useState(null);
 
-    const load = () => {
-        setLoading(true);
-        api.getReports()
-            .then((data) => setReports(data.data ?? []))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(load, []);
+    useEffect(() => { load(); }, []);
 
     const handleDelete = (report, e) => {
         e.stopPropagation();
@@ -307,7 +301,7 @@ export default function ReportsList() {
         }
         setDeleting(report.id);
         api.deleteReport(report.id)
-            .then(load)
+            .then(() => load())
             .catch((err) => alert(`Errore: ${err.message}`))
             .finally(() => setDeleting(null));
     };
@@ -360,10 +354,12 @@ export default function ReportsList() {
                 ))}
             </ul>
 
+            <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
+
             {showIngest && (
                 <IngestModal
                     onClose={() => setShowIngest(false)}
-                    onSuccess={load}
+                    onSuccess={() => load()}
                 />
             )}
 

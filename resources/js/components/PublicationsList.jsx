@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { usePaginatedList } from '../hooks/usePaginatedList';
+import LoadMoreButton from './LoadMoreButton';
 
 const STATUS_COLORS = {
     draft:     'bg-warning-soft text-warning',
@@ -109,19 +111,13 @@ function PublicationItem({ pub, onUpdate }) {
 }
 
 export default function PublicationsList() {
-    const [publications, setPublications] = useState([]);
-    const [loading, setLoading]           = useState(true);
+    const { items: publications, loading, loadingMore, hasMore, load, loadMore } = usePaginatedList(api.getPublications);
     const [statusFilter, setStatusFilter] = useState('');
 
-    const load = () => {
-        setLoading(true);
-        const params = statusFilter ? { status: statusFilter } : {};
-        api.getPublications(params)
-            .then((data) => setPublications(data.data ?? []))
-            .finally(() => setLoading(false));
-    };
+    const activeParams = () => statusFilter ? { status: statusFilter } : {};
+    const reload = () => load(activeParams());
 
-    useEffect(load, [statusFilter]);
+    useEffect(reload, [statusFilter]);
 
     return (
         <div className="max-w-4xl mx-auto p-6">
@@ -143,13 +139,15 @@ export default function PublicationsList() {
 
             <ul className="space-y-4">
                 {publications.map((pub) => (
-                    <PublicationItem key={pub.id} pub={pub} onUpdate={load} />
+                    <PublicationItem key={pub.id} pub={pub} onUpdate={reload} />
                 ))}
             </ul>
 
             {!loading && publications.length === 0 && (
                 <p className="text-fg-muted">Nessuna pubblicazione trovata.</p>
             )}
+
+            <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
         </div>
     );
 }
