@@ -1,18 +1,34 @@
 import './bootstrap';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import ClusterFeed from './components/ClusterFeed';
 import ClusterDetail from './components/ClusterDetail';
 import PublicationsList from './components/PublicationsList';
 import ReportsList from './components/ReportsList';
 
+function NavTab({ to, end, children }) {
+    return (
+        <NavLink
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+                `text-sm pb-0.5 border-b-2 ${isActive
+                    ? 'text-primary font-medium border-primary'
+                    : 'text-fg-secondary border-transparent hover:text-fg'}`
+            }
+        >
+            {children}
+        </NavLink>
+    );
+}
+
 function Nav() {
     return (
-        <nav className="bg-white border-b px-6 py-3 flex gap-6 items-center">
-            <span className="font-bold text-neutral-800">AI News Pipeline</span>
-            <Link to="/" className="text-sm text-blue-600 hover:underline">Feed</Link>
-            <Link to="/publications" className="text-sm text-blue-600 hover:underline">Pubblicazioni</Link>
-            <Link to="/reports" className="text-sm text-blue-600 hover:underline">Report</Link>
+        <nav className="bg-surface border-b border-border px-6 py-3 flex gap-6 items-center">
+            <span className="font-bold text-fg">AI News Pipeline</span>
+            <NavTab to="/" end>Feed</NavTab>
+            <NavTab to="/publications">Pubblicazioni</NavTab>
+            <NavTab to="/reports">Report</NavTab>
         </nav>
     );
 }
