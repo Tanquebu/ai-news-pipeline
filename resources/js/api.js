@@ -28,6 +28,8 @@ export const api = {
     archiveCluster: (clusterId) =>
         request('POST', `/clusters/${clusterId}/archive`),
 
+    rescoreClusters: () => request('POST', '/clusters/rescore'),
+
     generateLinkedIn: (clusterId) =>
         request('POST', `/clusters/${clusterId}/generate/linkedin`),
 

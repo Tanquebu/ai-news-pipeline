@@ -241,6 +241,20 @@ class ClusterApiTest extends TestCase
         $this->assertDatabaseCount('publications', 4);
     }
 
+    public function test_rescore_all_recalculates_active_clusters_only(): void
+    {
+        $active   = $this->makeCluster(score: 0.1);
+        $archived = $this->makeCluster(score: 0.1);
+        $archived->update(['status' => 'archived']);
+
+        $response = $this->postJson('/api/clusters/rescore', [], $this->auth())
+            ->assertOk();
+
+        $this->assertSame(1, $response->json('rescored'));
+        $this->assertNotEquals(0.1, $active->fresh()->total_score);
+        $this->assertEquals(0.1, $archived->fresh()->total_score);
+    }
+
     public function test_generate_article_returns_422_for_ineligible_cluster(): void
     {
         $cluster = $this->makeCluster(score: 0.8); // no news items

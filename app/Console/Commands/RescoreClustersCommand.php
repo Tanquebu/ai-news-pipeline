@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Actions\RescoreClustersAction;
 use App\Models\Cluster;
-use App\Services\ScoringService;
 use Illuminate\Console\Command;
 
 class RescoreClustersCommand extends Command
@@ -14,7 +14,7 @@ class RescoreClustersCommand extends Command
 
     protected $description = 'Recalculate total_score for all active clusters';
 
-    public function handle(ScoringService $scoring): int
+    public function handle(RescoreClustersAction $action): int
     {
         $total = Cluster::where('status', 'active')->count();
 
@@ -25,20 +25,8 @@ class RescoreClustersCommand extends Command
         }
 
         $this->info("Rescoring {$total} active cluster(s)...");
-        $bar = $this->output->createProgressBar($total);
-        $bar->start();
-
-        Cluster::where('status', 'active')
-            ->with(['newsItems', 'tags'])
-            ->cursor()
-            ->each(function (Cluster $cluster) use ($scoring, $bar) {
-                $scoring->updateScore($cluster);
-                $bar->advance();
-            });
-
-        $bar->finish();
-        $this->newLine();
-        $this->info('Done.');
+        $count = $action->execute();
+        $this->info("Done. Rescored {$count} cluster(s).");
 
         return self::SUCCESS;
     }

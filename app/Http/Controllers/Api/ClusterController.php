@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\GenerateArticleAction;
 use App\Actions\GenerateLinkedInPostsAction;
+use App\Actions\RescoreClustersAction;
 use App\Http\Controllers\Controller;
 use App\Models\Cluster;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,11 @@ use Illuminate\Http\Request;
 
 class ClusterController extends Controller
 {
+    public function rescoreAll(RescoreClustersAction $action): JsonResponse
+    {
+        return response()->json(['rescored' => $action->execute()]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Cluster::with(['tags', 'newsItems.report:id,source_ai'])

@@ -8,6 +8,8 @@ export default function ClusterFeed() {
     const { items: clusters, loading, loadingMore, hasMore, error, load, loadMore } = usePaginatedList(api.getClusters);
     const [filters, setFilters]     = useState({ score_min: '', tag: '', since: '', source_ai: '' });
     const [generators, setGenerators] = useState([]);
+    const [rescoring, setRescoring] = useState(false);
+    const [rescoreMessage, setRescoreMessage] = useState('');
 
     useEffect(() => {
         api.getGenerators().then(setGenerators).catch(() => {});
@@ -22,6 +24,18 @@ export default function ClusterFeed() {
     const handleFilter = (e) => {
         e.preventDefault();
         load(activeParams());
+    };
+
+    const handleRescore = () => {
+        setRescoring(true);
+        setRescoreMessage('');
+        api.rescoreClusters()
+            .then(({ rescored }) => {
+                setRescoreMessage(`${rescored} cluster ricalcolati.`);
+                load(activeParams());
+            })
+            .catch((e) => setRescoreMessage(e.message))
+            .finally(() => setRescoring(false));
     };
 
     return (
@@ -63,7 +77,17 @@ export default function ClusterFeed() {
                 >
                     Filtra
                 </button>
+                <button
+                    type="button"
+                    onClick={handleRescore}
+                    disabled={rescoring}
+                    className="bg-surface-muted text-fg px-4 py-1.5 rounded text-sm border border-border hover:bg-border disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                >
+                    {rescoring ? 'Ricalcolo…' : 'Ricalcola punteggi'}
+                </button>
             </form>
+
+            {rescoreMessage && <p className="text-sm text-fg-muted mb-4">{rescoreMessage}</p>}
 
             {loading && <p className="text-fg-muted">Caricamento…</p>}
             {error   && <p className="text-danger">{error}</p>}
