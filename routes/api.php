@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\NewsItemController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\RagSearchController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ScoringInfoController;
+use App\Http\Controllers\Api\TagProposalController;
 use App\Http\Middleware\ApiTokenAuth;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +22,10 @@ Route::middleware(ApiTokenAuth::class)->group(function () {
     Route::post('/clusters/{cluster}/archive', [ClusterController::class, 'archive']);
     Route::post('/clusters/{cluster}/generate/linkedin', [ClusterController::class, 'generateLinkedIn']);
     Route::post('/clusters/{cluster}/generate/article', [ClusterController::class, 'generateArticle']);
+
+    Route::get('/scoring/info', [ScoringInfoController::class, 'index']);
+    Route::get('/tag-proposals', [TagProposalController::class, 'index']);
+    Route::post('/tag-proposals/{tagProposal}/promote', [TagProposalController::class, 'promote']);
 
     Route::get('/dossiers', [DossierController::class, 'index']);
 

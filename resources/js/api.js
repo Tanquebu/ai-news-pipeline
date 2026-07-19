@@ -30,6 +30,13 @@ export const api = {
 
     rescoreClusters: () => request('POST', '/clusters/rescore'),
 
+    getScoringInfo: () => request('GET', '/scoring/info'),
+
+    getTagProposals: (params = {}) =>
+        request('GET', '/tag-proposals?' + new URLSearchParams(params)),
+
+    promoteTagProposal: (id) => request('POST', `/tag-proposals/${id}/promote`),
+
     generateLinkedIn: (clusterId) =>
         request('POST', `/clusters/${clusterId}/generate/linkedin`),
 

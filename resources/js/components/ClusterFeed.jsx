@@ -40,7 +40,10 @@ export default function ClusterFeed() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">Cluster Feed</h1>
+            <div className="flex justify-between items-baseline mb-6">
+                <h1 className="text-2xl font-bold">Cluster Feed</h1>
+                <Link to="/help/scoring" className="text-sm text-primary hover:underline">Come funziona lo scoring?</Link>
+            </div>
 
             <form onSubmit={handleFilter} className="flex gap-3 mb-6 flex-wrap">
                 <input
