@@ -15,7 +15,7 @@ class PublicationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Publication::with('cluster')
+        $query = Publication::with('cluster.tags')
             ->orderByDesc('generated_at');
 
         if ($request->filled('status')) {

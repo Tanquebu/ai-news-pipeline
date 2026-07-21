@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\Cluster;
 use App\Models\Publication;
+use App\Models\Tag;
 use Database\Seeders\TagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -126,6 +127,17 @@ class PublicationApiTest extends TestCase
         $this->getJson('/api/publications', $this->auth())
             ->assertOk()
             ->assertJsonCount(1, 'data');
+    }
+
+    public function test_index_includes_cluster_tags(): void
+    {
+        $pub = $this->makePublication('published', kind: 'article');
+        $tag = Tag::where('slug', 'mcp')->firstOrFail();
+        $pub->cluster->tags()->attach($tag);
+
+        $response = $this->getJson('/api/publications?status=published', $this->auth())->assertOk();
+
+        $this->assertSame('mcp', $response->json('data.0.cluster.tags.0.slug'));
     }
 
     public function test_index_shows_only_archived_when_requested(): void
