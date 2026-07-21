@@ -6,6 +6,7 @@ import ClusterDetail from './components/ClusterDetail';
 import PublicationsList from './components/PublicationsList';
 import ReportsList from './components/ReportsList';
 import ScoringHelp from './components/ScoringHelp';
+import PublishingHelp from './components/PublishingHelp';
 
 function NavTab({ to, end, children }) {
     return (
@@ -45,6 +46,7 @@ function App() {
                     <Route path="/publications" element={<PublicationsList />} />
                     <Route path="/reports" element={<ReportsList />} />
                     <Route path="/help/scoring" element={<ScoringHelp />} />
+                    <Route path="/help/publishing" element={<PublishingHelp />} />
                 </Routes>
             </main>
         </BrowserRouter>

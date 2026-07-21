@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import LoadMoreButton from './LoadMoreButton';
@@ -10,10 +11,39 @@ const STATUS_COLORS = {
     published: 'bg-primary-soft text-primary',
 };
 
+function PublicationDetailModal({ pub, onClose }) {
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-surface rounded-modal shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b border-border flex justify-between items-start gap-3 shrink-0">
+                    <div className="min-w-0">
+                        <h2 className="text-lg font-semibold truncate">{pub.title}</h2>
+                        <p className="text-xs text-fg-muted mt-1">
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-mono ${STATUS_COLORS[pub.status]}`}>
+                                {pub.kind}
+                            </span>
+                            {' · '}
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-xs ${STATUS_COLORS[pub.status]}`}>
+                                {pub.status}
+                            </span>
+                            {pub.cluster && <> · da cluster: {pub.cluster.canonical_title}</>}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-fg-muted hover:text-fg-secondary text-2xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">&times;</button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1">
+                    <p className="text-sm text-fg whitespace-pre-wrap">{pub.body}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function PublicationItem({ pub, onUpdate }) {
     const [editing, setEditing] = useState(false);
     const [body, setBody]       = useState(pub.body);
     const [saving, setSaving]   = useState(false);
+    const [expanded, setExpanded] = useState(false);
 
     const act = (status) => {
         setSaving(true);
@@ -83,6 +113,10 @@ function PublicationItem({ pub, onUpdate }) {
                             Pubblica
                         </button>
                     )}
+                    <button onClick={() => setExpanded(true)}
+                            className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+                        Espandi
+                    </button>
                     <button onClick={() => setEditing(!editing)}
                             className="text-xs border border-border px-2 py-1 rounded hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
                         {editing ? 'Chiudi' : 'Modifica'}
@@ -118,6 +152,8 @@ function PublicationItem({ pub, onUpdate }) {
                     </button>
                 </div>
             )}
+
+            {expanded && <PublicationDetailModal pub={pub} onClose={() => setExpanded(false)} />}
         </li>
     );
 }
@@ -137,7 +173,10 @@ export default function PublicationsList() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6">Pubblicazioni</h1>
+            <div className="flex items-baseline justify-between mb-6">
+                <h1 className="text-2xl font-bold">Pubblicazioni</h1>
+                <Link to="/help/publishing" className="text-sm text-primary hover:underline">Prossimi passi dopo la pubblicazione?</Link>
+            </div>
 
             <div className="flex gap-2 mb-6 items-center flex-wrap">
                 {['', 'draft', 'approved', 'rejected', 'published'].map((s) => (
