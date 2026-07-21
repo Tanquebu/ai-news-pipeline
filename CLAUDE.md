@@ -10,6 +10,20 @@ Sulla stessa base vive il **dominio documentale/RAG**: ingest idempotente di doc
 
 UI: seguire `docs/ui-direction.md`.
 
+## Integrazioni inter-progetto (in ↔ out)
+
+ANP non è isolato: è un nodo in flussi inter-progetto **strategici**, da non lasciar degradare a dead code.
+
+**IN — feed intake → corpus RAG** (roadmap ANP/RAG v2, M1). Un cron host sul VPS (`30 7 * * *`) esegue `intake/scripts/feed/push-to-anp.py --yes`, che POSTa gli item eleggibili del dominio *feed* di intake su `POST /api/documents/ingest` (idempotente per `source_system+source_record_id+content_hash`; Airtable read-only lato intake). Filtro sorgente: categorie `news`/`linkedin-article`/`tool`/`research`/`community` + tag editoriali; esclusi `job-opportunity` e draft/skipped. **Stato: in rodaggio** — raffinamento previsto = gate di validazione ("da validare" con conferma umana prima dell'ingresso nel corpus). Dettagli lato sorgente: `docs/flusso-anp-rag.md` nel repo intake.
+
+**OUT — articoli → sito `/ia/news`.** Gli articoli pubblicati (`kind=article`, `status=published`) alimentano la sezione `/ia/news` di massimilianonicosia.it (import via `pnpm ianews:import` sul repo del sito).
+
+**Due percorsi di ingestion, da non confondere:**
+1. **Report "5 AI"** — `reports:ingest` / `POST /api/reports/ingest`. **Manuale, non schedulato** (scelta deliberata). Alimenta clustering → synthesis → brief.
+2. **Documenti RAG** — `POST /api/documents/ingest`. **Automatico** dal bridge intake sopra. Alimenta la ricerca ibrida FTS+pgvector.
+
+**Giunzione da ricordare:** un documento con `category=news` (percorso 2, `IngestDocumentAction`) crea **anche** un `news_item` che entra nel flusso embed/cluster del percorso 1. Quindi il clustering è alimentato **sia** dai report manuali **sia**, in automatico, dalle news del feed intake — i due percorsi non sono del tutto separati.
+
 ## Stack
 
 - PHP 8.3+ / Laravel (ultima stabile)
